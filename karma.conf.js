@@ -1,31 +1,33 @@
+var fs = require('fs');
+
 module.exports = function (config) {
   var configuration = {
     basePath: '',
-    frameworks: ['browserify', 'jasmine'],
-    preprocessors: {
-      'index.js': ['browserify', 'babel'],
-      'lib/**/*.js': ['browserify', 'babel'],
-      'test/**/*.js': ['browserify', 'babel'],
+    frameworks: ['browserify', 'jasmine-jquery', 'jasmine'],
+    browserify: {
+      debug: true,
+      transform: [
+        ['babelify', {plugins: ['babel-plugin-espower']}],
+      ],
     },
-    babelPreprocessor: {
-      options: {
-        presets: ['es2015'],
-        sourceMap: 'inline'
-      },
-      filename: function (file) {
-        return file.originalPath.replace(/\.js$/, '.es5.js');
-      },
-      sourceFileName: function (file) {
-        return file.originalPath;
-      }
+    preprocessors: {
+      'index.js': 'browserify',
+      'lib/**/*.js': 'browserify',
+      'test/**/*.js': 'browserify',
     },
     files: [
       'node_modules/babel-polyfill/dist/polyfill.js',
-      'test/**/*_unit.js'
+      'test/**/*_unit.js',
+      { pattern: 'test/support/testassets/*.mpd',
+        watched: true,
+        served: true,
+        included: false
+      }
     ],
     browsers: ['Chrome'],
     singleRun: true,
     concurrency: Infinity,
+    logLevel: config.LOG_INFO,
     customLaunchers: {
         Chrome_travis_ci: {
             base: 'Chrome',
