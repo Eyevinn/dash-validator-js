@@ -6,6 +6,11 @@ describe("Dash Parser", () => {
     const testAssets = new TestAssetsModule();
     const asset = testAssets.getAssetByName("usp-live"); 
     const parser = new DashParserModule();
-    parser.parse(asset.xml).then(done).catch(fail);
+    parser.parse(asset.xml).then((mpd) => {
+      expect(mpd.type).toBe("dynamic");
+      expect(mpd.availabilityStartTime).toBe(0);
+      expect(mpd.publishTime).toBe(1482520667);
+      done();
+    }).catch(fail).then(done);
   });
 });
