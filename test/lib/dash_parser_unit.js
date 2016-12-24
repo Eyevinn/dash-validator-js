@@ -20,6 +20,10 @@ describe("Dash Parser", () => {
       expect(mpd.periods[0].start).toBe(0);
       expect(mpd.periods[0].adaptationSets.length).toBe(3);
       expect(mpd.periods[0].adaptationSets[0].bandwidth.min).toBe(96000);
+
+      const segments = mpd.periods[0].adaptationSets[0].segments;
+      expect(Math.floor(segments[0].start)).toBe(1482517136);
+
       done();
     }).catch(fail).then(done);
   });
