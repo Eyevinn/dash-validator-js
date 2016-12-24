@@ -6,8 +6,11 @@
   "engines": {
     "node": "6.9.1"
   },
+  "repository": "https://github.com/Eyevinn/dash-validator-js",
   "scripts": {
     "test": "$(npm bin)/karma start karma.conf.js",
+    "clean": "rm dist/*",
+    "prebuild": "npm run clean && npm run test",
     "build": "browserify index.js -o dist/dashvalidator.js -t babelify --presets es2015"
   },
   "author": "Jonas Birme <jonas.birme@eyevinn.se> (http://eyvinn.github.io)",
