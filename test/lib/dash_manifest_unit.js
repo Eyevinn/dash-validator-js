@@ -35,10 +35,16 @@ describe("DashManifest API", () => {
     periods.push({
       id: "1",
       start: 0,
+      adaptationsSets: [{
+        contentType: "audio",
+        mimeType: "audio/mp4",
+        bandwidth: { min: 96000, max: 96000 },
+      }],
     });
     const mpd = new DashManifest({ periods: periods });
     expect(mpd.periods.length).toBe(1);
     expect(mpd.periods[0].id).toBe("1");
     expect(mpd.periods[0].start).toBe(0);
+    expect(mpd.periods[0].adaptationsSets[0].contentType).toBe("audio");
   });
 });
