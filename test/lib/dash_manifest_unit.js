@@ -24,4 +24,21 @@ describe("DashManifest API", () => {
     const mpd = new DashManifest({ publishTime: "2016-12-23T19:17:47.832317Z" });
     expect(mpd.publishTime).toBe(1482520667);
   });
+
+  it("can return timeshift buffer depth in seconds", () => {
+    const mpd = new DashManifest({ timeShiftBufferDepth: "PT1H" });
+    expect(mpd.timeShiftBufferDepth).toBe(3600);
+  });
+
+  it("can return an array of periods", () => {
+    const periods = [];
+    periods.push({
+      id: "1",
+      start: 0,
+    });
+    const mpd = new DashManifest({ periods: periods });
+    expect(mpd.periods.length).toBe(1);
+    expect(mpd.periods[0].id).toBe("1");
+    expect(mpd.periods[0].start).toBe(0);
+  });
 });

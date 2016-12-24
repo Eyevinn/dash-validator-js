@@ -10,6 +10,9 @@ describe("Dash Parser", () => {
       expect(mpd.type).toBe("dynamic");
       expect(mpd.availabilityStartTime).toBe(0);
       expect(mpd.publishTime).toBe(1482520667);
+      expect(mpd.timeShiftBufferDepth).toBe(3600);
+      expect(mpd.periods.length).toBe(1);
+      expect(mpd.periods[0].start).toBe(0);
       done();
     }).catch(fail).then(done);
   });
