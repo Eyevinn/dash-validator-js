@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Created with Unified Streaming Platform(version=1.7.18) -->
+<MPD
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="urn:mpeg:dash:schema:mpd:2011"
+  xsi:schemaLocation="urn:mpeg:dash:schema:mpd:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd"
+  xmlns:cenc="urn:mpeg:cenc:2013"
+  xmlns:mas="urn:marlin:mas:1-0:services:schemas:mpd"
+  type="static"
+  mediaPresentationDuration="PT2H42M2.709333S"
+  maxSegmentDuration="PT1M"
+  minBufferTime="PT10S"
+  profiles="urn:mpeg:dash:profile:isoff-live:2011">
+  <Period
+    duration="PT2H42M2.709333S">
+    <BaseURL>dash/</BaseURL>
+    <AdaptationSet
+      group="1"
+      contentType="audio"
+      minBandwidth="96000"
+      maxBandwidth="96000"
+      segmentAlignment="true"
+      audioSamplingRate="48000"
+      mimeType="audio/mp4"
+      codecs="mp4a.40.2">
+      <AudioChannelConfiguration
+        schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011"
+        value="2">
+      </AudioChannelConfiguration>
+      <!-- Common Encryption -->
+      <ContentProtection
+        schemeIdUri="urn:mpeg:dash:mp4protection:2011"
+        value="cenc"
+        cenc:default_KID="215571C5-4E09-1538-9452-AA424B34C40B">
+      </ContentProtection>
+      <!-- PlayReady -->
+      <ContentProtection
+        schemeIdUri="urn:uuid:9A04F079-9840-4286-AB92-E65BE0885F95"
+        value="MSPR 2.0">
+      </ContentProtection>
+      <!-- Widevine -->
+      <ContentProtection
+        schemeIdUri="urn:uuid:EDEF8BA9-79D6-4ACE-A3C8-27DCD51D21ED">
+      </ContentProtection>
+      <!-- Marlin -->
+      <ContentProtection
+        schemeIdUri="urn:uuid:5E629AF5-38DA-4063-8977-97FFBD9902D4">
+<mas:MarlinContentIds>
+  <mas:MarlinContentId>urn:marlin:kid:215571c54e0915389452aa424b34c40b</mas:MarlinContentId>
+</mas:MarlinContentIds>
+      </ContentProtection>
+      <SegmentTemplate
+        timescale="48000"
+        initialization="INTERSTELLAR(3541935_ISM)-$RepresentationID$.dash"
+        media="INTERSTELLAR(3541935_ISM)-$RepresentationID$-$Time$.dash"
+        startNumber="1">
+        <SegmentTimeline>
+          <S t="0" d="96256" r="4847" />
+          <S d="40960" />
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation
+        id="audio=96000"
+        bandwidth="96000">
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet
+      group="3"
+      contentType="text"
+      lang="da"
+      minBandwidth="1000"
+      maxBandwidth="1000"
+      mimeType="application/mp4"
+      codecs="stpp">
+      <SegmentTemplate
+        timescale="1000"
+        initialization="INTERSTELLAR(3541935_ISM)-$RepresentationID$.dash"
+        media="INTERSTELLAR(3541935_ISM)-$RepresentationID$-$Time$.dash"
+        startNumber="1">
+        <SegmentTimeline>
+          <S t="0" d="60000" r="156" />
+          <S d="24190" />
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation
+        id="textstream_dan=1000"
+        bandwidth="1000">
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet
+      group="3"
+      contentType="text"
+      lang="fi"
+      minBandwidth="1000"
+      maxBandwidth="1000"
+      mimeType="application/mp4"
+      codecs="stpp">
+      <SegmentTemplate
+        timescale="1000"
+        initialization="INTERSTELLAR(3541935_ISM)-$RepresentationID$.dash"
+        media="INTERSTELLAR(3541935_ISM)-$RepresentationID$-$Time$.dash"
+        startNumber="1">
+        <SegmentTimeline>
+          <S t="0" d="60000" r="156" />
+          <S d="17130" />
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation
+        id="textstream_fin=1000"
+        bandwidth="1000">
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet
+      group="3"
+      contentType="text"
+      lang="nb"
+      minBandwidth="1000"
+      maxBandwidth="1000"
+      mimeType="application/mp4"
+      codecs="stpp">
+      <SegmentTemplate
+        timescale="1000"
+        initialization="INTERSTELLAR(3541935_ISM)-$RepresentationID$.dash"
+        media="INTERSTELLAR(3541935_ISM)-$RepresentationID$-$Time$.dash"
+        startNumber="1">
+        <SegmentTimeline>
+          <S t="0" d="60000" r="156" />
+          <S d="26090" />
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation
+        id="textstream_nob=1000"
+        bandwidth="1000">
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet
+      group="3"
+      contentType="text"
+      lang="sv"
+      minBandwidth="1000"
+      maxBandwidth="1000"
+      mimeType="application/mp4"
+      codecs="stpp">
+      <SegmentTemplate
+        timescale="1000"
+        initialization="INTERSTELLAR(3541935_ISM)-$RepresentationID$.dash"
+        media="INTERSTELLAR(3541935_ISM)-$RepresentationID$-$Time$.dash"
+        startNumber="1">
+        <SegmentTimeline>
+          <S t="0" d="60000" r="156" />
+          <S d="26090" />
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation
+        id="textstream_swe=1000"
+        bandwidth="1000">
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet
+      group="2"
+      contentType="video"
+      par="16:9"
+      minBandwidth="253000"
+      maxBandwidth="8001000"
+      minWidth="384"
+      maxWidth="1920"
+      minHeight="216"
+      maxHeight="1080"
+      segmentAlignment="true"
+      frameRate="25"
+      mimeType="video/mp4"
+      startWithSAP="1">
+      <!-- Common Encryption -->
+      <ContentProtection
+        schemeIdUri="urn:mpeg:dash:mp4protection:2011"
+        value="cenc"
+        cenc:default_KID="215571C5-4E09-1538-9452-AA424B34C40B">
+      </ContentProtection>
+      <!-- PlayReady -->
+      <ContentProtection
+        schemeIdUri="urn:uuid:9A04F079-9840-4286-AB92-E65BE0885F95"
+        value="MSPR 2.0">
+      </ContentProtection>
+      <!-- Widevine -->
+      <ContentProtection
+        schemeIdUri="urn:uuid:EDEF8BA9-79D6-4ACE-A3C8-27DCD51D21ED">
+      </ContentProtection>
+      <!-- Marlin -->
+      <ContentProtection
+        schemeIdUri="urn:uuid:5E629AF5-38DA-4063-8977-97FFBD9902D4">
+<mas:MarlinContentIds>
+  <mas:MarlinContentId>urn:marlin:kid:215571c54e0915389452aa424b34c40b</mas:MarlinContentId>
+</mas:MarlinContentIds>
+      </ContentProtection>
+      <SegmentTemplate
+        timescale="25"
+        initialization="INTERSTELLAR(3541935_ISM)-$RepresentationID$.dash"
+        media="INTERSTELLAR(3541935_ISM)-$RepresentationID$-$Time$.dash"
+        startNumber="1">
+        <SegmentTimeline>
+          <S t="0" d="75" r="3239" />
+          <S d="67" />
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation
+        id="video=253000"
+        bandwidth="253000"
+        width="384"
+        height="216"
+        codecs="avc1.42401E"
+        scanType="progressive">
+      </Representation>
+      <Representation
+        id="video=704000"
+        bandwidth="704000"
+        width="640"
+        height="360"
+        codecs="avc1.42401E"
+        scanType="progressive">
+      </Representation>
+      <Representation
+        id="video=1404000"
+        bandwidth="1404000"
+        width="768"
+        height="432"
+        codecs="avc1.4D401E"
+        scanType="progressive">
+      </Representation>
+      <Representation
+        id="video=2244000"
+        bandwidth="2244000"
+        width="1024"
+        height="576"
+        codecs="avc1.4D401F"
+        scanType="progressive">
+      </Representation>
+      <Representation
+        id="video=3216000"
+        bandwidth="3216000"
+        width="1280"
+        height="720"
+        codecs="avc1.4D4032"
+        scanType="progressive">
+      </Representation>
+      <Representation
+        id="video=6002000"
+        bandwidth="6002000"
+        width="1920"
+        height="1080"
+        codecs="avc1.4D4032"
+        scanType="progressive">
+      </Representation>
+      <Representation
+        id="video=8001000"
+        bandwidth="8001000"
+        width="1920"
+        height="1080"
+        codecs="avc1.4D4032"
+        scanType="progressive">
+      </Representation>
+    </AdaptationSet>
+  </Period>
+</MPD>

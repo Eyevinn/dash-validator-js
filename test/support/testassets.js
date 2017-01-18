@@ -12,6 +12,7 @@ const TestAssets = function constructor() {
   this.assets = [];
 
   this.assets.push(loadAsset("usp-live", "usp.live.mpd"));
+  this.assets.push(loadAsset("usp-vod", "usp.vod.mpd"));
 };
 
 TestAssets.prototype.getAssetByName = function(name) {

@@ -27,4 +27,21 @@ describe("Dash Parser", () => {
       done();
     }).catch(fail).then(done);
   });
+
+  it("can parse an MPEG DASH vod manifest from USP", function t(done) {
+    const testAssets = new TestAssetsModule();
+    const asset = testAssets.getAssetByName("usp-vod");
+    const parser = new DashParserModule();
+    parser.parse(asset.xml).then((mpd) => {
+      expect(mpd.type).toBe("static");
+
+      expect(mpd.periods[0].adaptationSets[5].contentType).toBe("video");
+      const segments = mpd.periods[0].adaptationSets[5].segments;
+      expect(segments.length).toBe(3240);
+      expect(segments[0].start).toBe(0);
+      expect(segments[0].end).toBe(3);
+      expect(segments[1].t).toBe(75);
+      done();
+    });
+  });
 });
