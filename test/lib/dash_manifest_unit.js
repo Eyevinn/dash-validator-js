@@ -4,6 +4,8 @@
 // Author: Jonas Birme (Eyevinn Technology)
 
 const DashManifest = require("../../lib/dash_manifest.js");
+const DashParserModule = require("../../lib/dash_parser.js");
+const TestAssetsModule = require("../support/testassets.js");
 
 describe("DashManifest API", () => {
   it("can return type", () => {
@@ -46,5 +48,14 @@ describe("DashManifest API", () => {
     expect(mpd.periods[0].id).toBe("1");
     expect(mpd.periods[0].start).toBe(0);
     expect(mpd.periods[0].adaptationsSets[0].contentType).toBe("audio");
+  });
+
+  it("can return a list of all segment urls", (done) => {
+    const testAssets = new TestAssetsModule();
+    const asset = testAssets.getAssetByName("usp-vod");
+    const parser = new DashParserModule();
+    parser.parse(asset.xml).then((mpd) => {
+      //console.log(mpd.segments); 
+    }).catch(fail).then(done);
   });
 });

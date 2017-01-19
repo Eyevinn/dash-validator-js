@@ -21,7 +21,7 @@ describe("Dash Parser", () => {
       expect(mpd.periods[0].adaptationSets.length).toBe(3);
       expect(mpd.periods[0].adaptationSets[0].bandwidth.min).toBe(96000);
 
-      const segments = mpd.periods[0].adaptationSets[0].segments;
+      const segments = mpd.periods[0].adaptationSets[0].segmentList.segments;
       expect(Math.floor(segments[0].start)).toBe(1482517136);
 
       done();
@@ -36,12 +36,20 @@ describe("Dash Parser", () => {
       expect(mpd.type).toBe("static");
 
       expect(mpd.periods[0].adaptationSets[5].contentType).toBe("video");
-      const segments = mpd.periods[0].adaptationSets[5].segments;
+      expect(mpd.periods[0].baseUrl).toBe("dash/");
+      const segments = mpd.periods[0].adaptationSets[5].segmentList.segments;
       expect(segments.length).toBe(3240);
       expect(segments[0].start).toBe(0);
       expect(segments[0].end).toBe(3);
       expect(segments[1].t).toBe(75);
+
+      const representations = mpd.periods[0].adaptationSets[5].representations;
+      expect(representations.length).toBe(7);
+      expect(representations[0].id).toBe("video=253000");
+      representations[0].segments.forEach((seg) => {
+        expect(seg.uri).toBe("INTERSTELLAR(3541935_ISM)-" + representations[0].id + "-" + seg.t + ".dash");
+      });
       done();
-    });
+    }).catch(fail).then(done);
   });
 });
