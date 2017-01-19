@@ -38,6 +38,7 @@ describe("DashSegmentList", () => {
     expect(segmentList.segments[0].start).toBe(0);
     expect(segmentList.segments[0].end).toBe(3);
     expect(segmentList.segments[1].t).toBe(75);
+    expect(segmentList.segments[1].durationInSeconds).toBe(3);
     expect(segmentList.segments[3239].t).toBe(242925);
   });
 });

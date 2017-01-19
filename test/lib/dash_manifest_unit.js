@@ -56,6 +56,27 @@ describe("DashManifest API", () => {
     const parser = new DashParserModule();
     parser.parse(asset.xml).then((mpd) => {
       //console.log(mpd.segments); 
+      done();
+    }).catch(fail).then(done);
+  });
+
+  it("can calculate a total duration for VOD", (done) => {
+    const testAssets = new TestAssetsModule();
+    const asset = testAssets.getAssetByName("usp-vod");
+    const parser = new DashParserModule();
+    parser.parse(asset.xml).then((mpd) => {
+      expect(mpd.totalDuration).toBe(9719.68);
+      done();
+    }).catch(fail).then(done);
+  });
+
+  it("is not able to calculate a total duration for Live", (done) => {
+    const testAssets = new TestAssetsModule();
+    const asset = testAssets.getAssetByName("usp-live");
+    const parser = new DashParserModule();
+    parser.parse(asset.xml).then((mpd) => {
+      expect(mpd.totalDuration).toBe(undefined);
+      done();
     }).catch(fail).then(done);
   });
 });
