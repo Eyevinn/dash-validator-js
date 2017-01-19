@@ -60,6 +60,10 @@ describe("Dash Validator", () => {
         resolve(mockHeaders);
       });
     });
+
+    spyOn(util, "sleep").and.callFake(() => {
+      return;
+    }); 
     done();
   });
 
