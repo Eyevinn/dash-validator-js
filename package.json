@@ -11,7 +11,9 @@
     "test": "$(npm bin)/karma start karma.conf.js",
     "clean": "rm -f dist/*",
     "prebuild": "npm run clean && npm run test",
-    "build": "browserify index.js -o dist/dashvalidator.js -t babelify --presets es2015"
+    "build": "browserify index.js -o dist/dashvalidator.js -t babelify --presets es2015",
+    "version": "npm run build && git -A dist",
+    "postversion": "git push && git push --tags"
   },
   "author": "Jonas Birme <jonas.birme@eyevinn.se> (http://eyvinn.github.io)",
   "license": "MIT",
