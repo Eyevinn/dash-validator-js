@@ -33,6 +33,8 @@ const DashValidator = function constructor(src) {
       let errors = 0;
       for (let i=0; i<segments.length; i++) {
         const seg = segments[i];
+        console.log("Checking " + self._base + seg);
+        util.sleep(50);
         util.requestHeaders(self._base + seg).then(headers => {
           if (isHeadersOk(headers)) {
             ok.push({ uri: seg });
