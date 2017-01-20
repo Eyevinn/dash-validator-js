@@ -1,6 +1,6 @@
 {
   "name": "dash-validator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "JS library to validate MPEG DASH manifests and segments",
   "main": "index.js",
   "engines": {
@@ -12,7 +12,7 @@
     "clean": "rm -f dist/*",
     "prebuild": "npm run clean && npm run test",
     "build": "browserify index.js -o dist/dashvalidator.js -t babelify --presets es2015",
-    "version": "npm run build && git -A dist",
+    "version": "npm run build && git add -A dist",
     "postversion": "git push && git push --tags"
   },
   "author": "Jonas Birme <jonas.birme@eyevinn.se> (http://eyvinn.github.io)",
