@@ -24,6 +24,24 @@ const DashValidator = function constructor(src) {
     });
   };
 
+  self.verifyTimestamps = function verifyTimestamps() {
+    return new Promise((resolve, reject) => {
+      const result = {};
+      if (self._manifest.type === "static") {
+        result.clock = "OK";
+      } else {
+        const timeAtHead = this._manifest.timeAtHead;
+        const d = new Date().getTime();
+        if (Math.abs(timeAtHead - d) > 10000) {
+          // More than 5000 ms of
+          result.clock = "BAD";
+          result.clockOffset = Math.abs(timeAtHead - d);
+        }
+      }
+      resolve(result);
+    });
+  }
+
   self.verifySegments = function verifySegments(verifyFn, segments) {
     return new Promise((resolve, reject) => {
       let failed = [];
@@ -33,9 +51,9 @@ const DashValidator = function constructor(src) {
       let verify = verifyFn || defaultVerifyFn;
       for (let i=0; i<segments.length; i++) {
         const seg = segments[i];
-        util.log("Checking " + self._base + seg);
         util.sleep(50);
         util.requestHeaders(self._base + seg).then(headers => {
+          util.log("Checking " + self._base + seg);
           if (verify(headers)) {
             ok.push({ uri: seg });
           } else {
