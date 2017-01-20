@@ -24,19 +24,19 @@ const DashValidator = function constructor(src) {
     });
   };
 
-  self.verifyAllSegments = function verifyAllSegments() {
+  self.verifySegments = function verifySegments(verifyFn, segments) {
     return new Promise((resolve, reject) => {
       let failed = [];
       let ok = [];
-      const segments = this._manifest.segments;
       let segmentsChecked = 0;
       let errors = 0;
+      let verify = verifyFn || defaultVerifyFn;
       for (let i=0; i<segments.length; i++) {
         const seg = segments[i];
-        console.log("Checking " + self._base + seg);
+        util.log("Checking " + self._base + seg);
         util.sleep(50);
         util.requestHeaders(self._base + seg).then(headers => {
-          if (isHeadersOk(headers)) {
+          if (verify(headers)) {
             ok.push({ uri: seg });
           } else {
             failed.push({ uri: seg, headers: headers });
@@ -44,29 +44,35 @@ const DashValidator = function constructor(src) {
           if (++segmentsChecked == segments.length) {
             resolve({ failed: failed, ok: ok });
           }
-        }).catch(err => {
-          console.error("Failed to get Headers", err);
+        }).catch((err) => {
           errors++;
-          failed.push({ uri: seg });
+          failed.push({ uri: seg, reason: err });
         });  
       }
     });
+  };
+
+  self.verifyAllSegments = function verifyAllSegments(verifyFn) {
+    const segments = this._manifest.segments;
+    return self.verifySegments(verifyFn, segments);
   };
 
   self.duration = function duration() {
     return self._manifest.totalDuration;
   };
 
+  self.segmentUrls = function segmentUrls() {
+    return this._manifest.segments;
+  };
+
   return self;
 };
 
-function isHeadersOk(headers) {
+function defaultVerifyFn(headers) {
   let headersOk = true;
   if (typeof headers["cache-control"] === "undefined" ||
       headers["access-control-expose-headers"].split(',').indexOf("Date") == -1 ||
-      headers["access-control-expose-headers"].split(',').indexOf("x-cdn-forward") == -1 ||
-      headers["access-control-allow-headers"].split(',').indexOf("origin") == -1 ||
-      typeof headers["x-cdn-forward"] === "undefined")
+      headers["access-control-allow-headers"].split(',').indexOf("origin") == -1)
   {
     headersOk = false;
   }

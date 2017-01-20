@@ -4,7 +4,20 @@ const validator = new DashValidator("http://lb-usp-dash-vod.cmore.se/catchup/ISM
 validator.load().then(() => {
   console.log("Loaded manifest");
   console.log(validator.duration());
-  validator.verifyAllSegments().then(result => {
+  validator.verifyAllSegments(verifyFn).then(result => {
     console.log(result);
   });
 }).catch(console.error);
+
+function verifyFn(headers) {
+  let headersOk = true;
+  if (typeof headers["cache-control"] === "undefined" ||
+      headers["access-control-expose-headers"].split(',').indexOf("Date") == -1 ||
+      headers["access-control-expose-headers"].split(',').indexOf("x-cdn-forward") == -1 ||
+      headers["access-control-allow-headers"].split(',').indexOf("origin") == -1 ||
+      typeof headers["x-cdn-forward"] === "undefined")
+  {
+    headersOk = false;
+  }
+  return headersOk;
+}
