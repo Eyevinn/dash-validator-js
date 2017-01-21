@@ -5,6 +5,7 @@ const TestAssetsModule = require("./support/testassets.js");
 describe("Dash Validator", () => {
   let failCount;
   let requestFailType;
+  let mockManifestHeaders;
 
   beforeEach((done) => {
     spyOn(util, "requestXml").and.callFake((uri) => {
@@ -12,7 +13,7 @@ describe("Dash Validator", () => {
         const testAssets = new TestAssetsModule();
         const m = uri.match(/^.*\/(.*?)\.mpd$/);
         const asset = testAssets.getAssetByName(m[1]);
-        resolve(asset.xml);
+        resolve({ xml: asset.xml, headers: mockManifestHeaders });
       });
     });
 
@@ -26,6 +27,7 @@ describe("Dash Validator", () => {
 
     failCount = 0;
     requestFailType = "headers"; /* {headers|httperror} */
+    mockManifestHeaders = {};
 
     spyOn(util, "requestHeaders").and.callFake((uri) => {
       return new Promise((resolve, reject) => {
@@ -84,6 +86,20 @@ describe("Dash Validator", () => {
       const duration = validator.duration();
       expect(duration).toBe(9719.68);
       done();
+    }).catch(fail).then(done);
+  });
+
+  it("can verify a live manifest", (done) => {
+    mockManifestHeaders = {
+      "cache-control": "max-age=2000",
+    };
+    const validator = new DashValidator("http://mock.example.com/usp-live.mpd");
+    validator.load().then(() => {
+      validator.verifyManifest().then(result => {
+        expect(result.ok).toBe(false);
+        expect(result.headers["cache-control"]).toBe("max-age=2000");
+        done();
+      });
     }).catch(fail).then(done);
   });
 
