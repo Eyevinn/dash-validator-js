@@ -1,0 +1,11 @@
+{
+  "source": {
+    "include": [
+      "index.js"
+    ]
+  },
+  "opts": {
+    "destination": "./docs/",
+    "template": "node_modules/minami"
+  }
+}
