@@ -1,94 +1,206 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+"use strict";
+
 // Copyright 2016 Eyevinn Technology. All rights reserved
 // Use of this source code is governed by a MIT License
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
-const DashParser = require("./lib/dash_parser.js");
-const util = require("./lib/util.js");
+var DashParser = require("./lib/dash_parser.js");
+var util = require("./lib/util.js");
 
-const DashValidator = function constructor(src) {
-  let self = {};
-  self._src = src;
-  self._manifest;
-  self._base = "";
+/**
+ * MPEG DASH Validator
+ * 
+ * A Javascript library that can be used to validate MPEG DASH streams (VOD and Live).
+ * Source available on {@link https://github.com/Eyevinn/dash-validator-js GitHub}
+ * 
+ * @module dash-validator
+ */
 
-  self.load = function load() {
-    return new Promise((resolve, reject) => {
-      self._base = util.getBaseUrl(self._src) + "/";
-      util.requestXml(self._src).then(xml => {
-        const parser = new DashParser();
-        parser.parse(xml).then(manifest => {
-          self._manifest = manifest;
-          resolve();
-        }).catch(reject);
-      }).catch(reject);
-    });
-  };
-
-  self.verifySegments = function verifySegments(verifyFn, segments) {
-    return new Promise((resolve, reject) => {
-      let failed = [];
-      let ok = [];
-      let segmentsChecked = 0;
-      let errors = 0;
-      let verify = verifyFn || defaultVerifyFn;
-      for (let i = 0; i < segments.length; i++) {
-        const seg = segments[i];
-        util.log("Checking " + self._base + seg);
-        util.sleep(50);
-        util.requestHeaders(self._base + seg).then(headers => {
-          if (verify(headers)) {
-            ok.push({ uri: seg });
-          } else {
-            failed.push({ uri: seg, headers: headers });
-          }
-          if (++segmentsChecked == segments.length) {
-            resolve({ failed: failed, ok: ok });
-          }
-        }).catch(err => {
-          errors++;
-          failed.push({ uri: seg, reason: err });
-        });
-      }
-    });
-  };
-
-  self.verifyAllSegments = function verifyAllSegments(verifyFn) {
-    const segments = this._manifest.segments;
-    return self.verifySegments(verifyFn, segments);
-  };
-
-  self.duration = function duration() {
-    return self._manifest.totalDuration;
-  };
-
-  self.segmentUrls = function segmentUrls() {
-    return this._manifest.segments;
-  };
-
-  return self;
+/**
+ * Creates a new Dash Validator object
+ * @constructor
+ * 
+ * @param {string} src URI to MPEG DASH manifest, e.g. http://example.com/example.mpd
+ * @returns {DashValidator}
+ */
+var DashValidator = function constructor(src) {
+  this._src = src;
+  this._manifest;
+  this._base = "";
 };
 
+/**
+ * Download and parses MPEG DASH manifest
+ * 
+ * @returns {Promise} that resolves when the manifest is downloaded and parsed. 
+ */
+DashValidator.prototype.load = function load() {
+  var _this = this;
+
+  return new Promise(function (resolve, reject) {
+    _this._base = util.getBaseUrl(_this._src) + "/";
+    util.requestXml(_this._src).then(function (xml) {
+      var parser = new DashParser();
+      parser.parse(xml).then(function (manifest) {
+        _this._manifest = manifest;
+        resolve();
+      }).catch(reject);
+    }).catch(reject);
+  });
+};
+
+/**
+ * @typedef FailedInfo
+ * @type {Object}
+ * @property {string} uri URI to the segment that failed
+ * @property {Object} headers The actual HTTP response headers 
+ */
+
+/**
+ * @typedef SuccessInfo
+ * @type {Object}
+ * @property {string} uri URI to the successful segment
+ */
+
+/**
+ * @typedef SegmentVerifyResult
+ * @type {Object}
+ * @property {Array.<FailedInfo>} failed An array of all segments that failed
+ * @property {Array.<SuccessInfo>} ok An array of all segments that were ok
+ */
+
+/**
+ * Verifies that the timestamp of the last segment for a MPEG DASH live-stream
+ * does not differ more than 10 seconds (default) from actual time.
+ * 
+ * This is only applicable for live-streams and for VOD will always return OK
+ * 
+ * @typedef TimestampResult
+ * @type {Object}
+ * @property {string} clock "OK" if ok or "BAD" if diff > allowedDiff
+ * @property {string} clockOffset The actual diff between last segment and now
+ * 
+ * @param {number} allowedDiff The allowed diff (in millisec, default is 10000)
+ * @returns {Promise.<TimestampResult>} that resolves when the timing has been checked.
+ */
+DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff) {
+  var _this2 = this;
+
+  return new Promise(function (resolve, reject) {
+    var diffCriteria = allowedDiff || 10000;
+    var result = {};
+    if (_this2._manifest.type === "static") {
+      result.clock = "OK";
+    } else {
+      var timeAtHead = _this2._manifest.timeAtHead;
+      var d = new Date().getTime();
+      if (Math.abs(timeAtHead - d) > diffCriteria) {
+        result.clock = "BAD";
+        result.clockOffset = Math.abs(timeAtHead - d);
+      }
+    }
+    resolve(result);
+  });
+};
+
+/**
+ * Verify that a list of segments can be downloaded and have correct HTTP headers
+ * Applicable for both live and VOD.
+ * 
+ * @param {Function(Object)} verifyFn Function that is called to verify a segment.
+ *    If not provided a default will be used
+ * @param {Array.<string>} segments An array of segment URIs
+ * @returns {Promise.<SegmentVerifyResult>} that resolves when all segments are verified.
+ */
+DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segments) {
+  var _this3 = this;
+
+  return new Promise(function (resolve, reject) {
+    var failed = [];
+    var ok = [];
+    var segmentsChecked = 0;
+    var errors = 0;
+    var verify = verifyFn || defaultVerifyFn;
+
+    var _loop = function _loop(i) {
+      var seg = segments[i];
+      util.sleep(50);
+      util.requestHeaders(_this3._base + seg).then(function (headers) {
+        util.log("Checking " + _this3._base + seg);
+        if (verify(headers)) {
+          ok.push({ uri: seg });
+        } else {
+          failed.push({ uri: seg, headers: headers });
+        }
+        if (++segmentsChecked == segments.length) {
+          resolve({ failed: failed, ok: ok });
+        }
+      }).catch(function (err) {
+        errors++;
+        failed.push({ uri: seg, reason: err });
+      });
+    };
+
+    for (var i = 0; i < segments.length; i++) {
+      _loop(i);
+    }
+  });
+};
+
+/**
+ * Verify that all segments referred to by this MPEG DASH manifest is OK
+ * 
+ * @param {Function(Object)} verifyFn Function that is called to verify a segment.
+ *    If not provided a default will be used
+ * @returns {Promise.<SegmentVerifyResult>} that resolves when all segments are verified.
+ */
+DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn) {
+  var segments = this._manifest.segments;
+  return this.verifySegments(verifyFn, segments);
+};
+
+/**
+ * @returns {number} the total duration of the MPEG DASH manifest
+ */
+DashValidator.prototype.duration = function duration() {
+  return this._manifest.totalDuration;
+};
+
+/**
+ * @returns {Array.<string>} an array with all segment URIs referred to by this
+ *   MPEG DASH manifest
+ */
+DashValidator.prototype.segmentUrls = function segmentUrls() {
+  return this._manifest.segments;
+};
+
+/** Private functions */
+
+/** @private */
 function defaultVerifyFn(headers) {
-  let headersOk = true;
+  var headersOk = true;
   if (typeof headers["cache-control"] === "undefined" || headers["access-control-expose-headers"].split(',').indexOf("Date") == -1 || headers["access-control-allow-headers"].split(',').indexOf("origin") == -1) {
     headersOk = false;
   }
   return headersOk;
 }
 
+/** Create a Dash Validator object */
 module.exports = DashValidator;
 
 },{"./lib/dash_parser.js":3,"./lib/util.js":6}],2:[function(require,module,exports){
+"use strict";
+
 // Copyright 2016 Eyevinn Technology. All rights reserved
 // Use of this source code is governed by a MIT License
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
 
-const util = require("./util.js");
+var util = require("./util.js");
 
-const DashManifest = function constructor(internalMpd) {
-  const self = {
+var DashManifest = function constructor(internalMpd) {
+  var self = {
     mpd: internalMpd,
     get type() {
       return this.mpd.type;
@@ -106,15 +218,15 @@ const DashManifest = function constructor(internalMpd) {
       return this.mpd.periods;
     },
     get segments() {
-      let segmentUrls = [];
-      defaultFilterFn = function (as) {
+      var segmentUrls = [];
+      defaultFilterFn = function defaultFilterFn(as) {
         return as.mimeType == "video/mp4";
       };
       filterFn = defaultFilterFn;
-      this.mpd.periods.forEach(p => {
-        p.adaptationSets.filter(filterFn).forEach(as => {
-          as.representations.forEach(r => {
-            r.segments.forEach(seg => {
+      this.mpd.periods.forEach(function (p) {
+        p.adaptationSets.filter(filterFn).forEach(function (as) {
+          as.representations.forEach(function (r) {
+            r.segments.forEach(function (seg) {
               segmentUrls.push(p.baseUrl + seg.uri);
             });
           });
@@ -123,16 +235,31 @@ const DashManifest = function constructor(internalMpd) {
       return segmentUrls;
     },
     get totalDuration() {
-      let duration = 0;
+      var duration = 0;
       if (this.mpd.type === "dynamic") {
         return undefined;
       }
-      this.mpd.periods.forEach(p => {
-        p.adaptationSets.filter(as => as.mimeType == "video/mp4").forEach(as => {
-          duration += as.representations[0].segments.map(s => s.durationInSeconds).reduce((total, value) => total + value);
+      this.mpd.periods.forEach(function (p) {
+        p.adaptationSets.filter(function (as) {
+          return as.mimeType == "video/mp4";
+        }).forEach(function (as) {
+          duration += as.representations[0].segments.map(function (s) {
+            return s.durationInSeconds;
+          }).reduce(function (total, value) {
+            return total + value;
+          });
         });
       });
       return duration;
+    },
+    get timeAtHead() {
+      var lastPeriod = this.mpd.periods[this.mpd.periods.length - 1];
+      var as = lastPeriod.adaptationSets.filter(function (as) {
+        return as.mimeType == "video/mp4";
+      })[0];
+      var segments = as.representations[0].segments;
+      var lastSegment = segments[segments.length - 1];
+      return lastSegment.end * 1000;
     }
   };
   return self;
@@ -141,24 +268,26 @@ const DashManifest = function constructor(internalMpd) {
 module.exports = DashManifest;
 
 },{"./util.js":6}],3:[function(require,module,exports){
+"use strict";
+
 // Copyright 2016 Eyevinn Technology. All rights reserved
 // Use of this source code is governed by a MIT License
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
-const DOMParser = require("xmldom").DOMParser;
+var DOMParser = require("xmldom").DOMParser;
 
-const DashManifest = require("./dash_manifest.js");
-const DashSegmentList = require("./dash_segmentlist.js");
-const DashRepresentation = require("./dash_representation.js");
-const util = require("./util.js");
+var DashManifest = require("./dash_manifest.js");
+var DashSegmentList = require("./dash_segmentlist.js");
+var DashRepresentation = require("./dash_representation.js");
+var util = require("./util.js");
 
 function parsePeriods(xml) {
-  const periods = [];
+  var periods = [];
 
-  const children = util.findChildren(xml, "Period");
-  for (let i = 0; i < children.length; i++) {
-    const periodXml = children[i];
-    const period = {};
+  var children = util.findChildren(xml, "Period");
+  for (var i = 0; i < children.length; i++) {
+    var periodXml = children[i];
+    var period = {};
     period.id = periodXml.getAttribute("id");
     period.start = util.durationInSeconds(periodXml.getAttribute("start"));
     period.baseUrl = util.findChildren(periodXml, "BaseURL")[0].textContent;
@@ -170,12 +299,12 @@ function parsePeriods(xml) {
 }
 
 function parseAdaptationSets(periodXml) {
-  const adaptationsSets = [];
-  const children = util.findChildren(periodXml, "AdaptationSet");
+  var adaptationsSets = [];
+  var children = util.findChildren(periodXml, "AdaptationSet");
 
-  for (let i = 0; i < children.length; i++) {
-    const asXml = children[i];
-    const as = {};
+  var _loop = function _loop(i) {
+    var asXml = children[i];
+    var as = {};
     as.contentType = asXml.getAttribute("contentType");
     as.mimeType = asXml.getAttribute("mimeType");
     as.representations = [];
@@ -183,31 +312,31 @@ function parseAdaptationSets(periodXml) {
       min: Number(asXml.getAttribute("minBandwidth")),
       max: Number(asXml.getAttribute("maxBandwidth"))
     };
-    const segmentTemplateXmlChildren = util.findChildren(asXml, "SegmentTemplate");
+    var segmentTemplateXmlChildren = util.findChildren(asXml, "SegmentTemplate");
     if (segmentTemplateXmlChildren.length > 0) {
-      const segmentTemplateXml = segmentTemplateXmlChildren[0];
-      const timescale = segmentTemplateXml.getAttribute("timescale");
-      const media = segmentTemplateXml.getAttribute("media");
-      const segmentXmlChildren = util.findChildren(segmentTemplateXml, "SegmentTimeline");
-      const segmentListXmlChildren = util.findChildren(segmentXmlChildren[0], "S");
-      const timeline = [];
-      for (let j = 0; j < segmentListXmlChildren.length; j++) {
-        const segmentXml = segmentListXmlChildren[j];
-        const s = {};
+      var segmentTemplateXml = segmentTemplateXmlChildren[0];
+      var timescale = segmentTemplateXml.getAttribute("timescale");
+      var media = segmentTemplateXml.getAttribute("media");
+      var segmentXmlChildren = util.findChildren(segmentTemplateXml, "SegmentTimeline");
+      var segmentListXmlChildren = util.findChildren(segmentXmlChildren[0], "S");
+      var timeline = [];
+      for (var j = 0; j < segmentListXmlChildren.length; j++) {
+        var segmentXml = segmentListXmlChildren[j];
+        var s = {};
         s.t = util.toNumber(segmentXml.getAttribute("t"));
         s.d = util.toNumber(segmentXml.getAttribute("d"));
         s.r = util.toNumber(segmentXml.getAttribute("r"));
         timeline.push(s);
       }
-      const segmentList = new DashSegmentList({
+      var segmentList = new DashSegmentList({
         timescale: timescale,
         media: media
       });
       segmentList.fromSegmentTimeline(timeline);
       as.segmentList = segmentList;
     }
-    util.findChildren(asXml, "Representation").forEach(reprXml => {
-      const representation = new DashRepresentation({
+    util.findChildren(asXml, "Representation").forEach(function (reprXml) {
+      var representation = new DashRepresentation({
         id: reprXml.getAttribute("id"),
         width: util.toNumber(reprXml.getAttribute("width")),
         height: util.toNumber(reprXml.getAttribute("height")),
@@ -216,21 +345,27 @@ function parseAdaptationSets(periodXml) {
       as.representations.push(representation);
     });
     adaptationsSets.push(as);
+  };
+
+  for (var i = 0; i < children.length; i++) {
+    _loop(i);
   }
 
   return adaptationsSets;
 }
 
-const DashParser = function constructor() {
+var DashParser = function constructor() {
   this.internalMpd = {};
   return this;
 };
 
 DashParser.prototype.parse = function parse(string) {
-  let parser = new DOMParser();
-  let xml = null;
+  var _this = this;
 
-  return new Promise((resolve, reject) => {
+  var parser = new DOMParser();
+  var xml = null;
+
+  return new Promise(function (resolve, reject) {
     try {
       xml = parser.parseFromString(string, "text/xml");
     } catch (exception) {
@@ -238,36 +373,40 @@ DashParser.prototype.parse = function parse(string) {
     }
     if (xml) {
       if (xml.documentElement.tagName == "MPD") {
-        this.internalMpd.xml = xml.documentElement;
+        _this.internalMpd.xml = xml.documentElement;
       }
     }
-    if (!this.internalMpd.xml) {
+    if (!_this.internalMpd.xml) {
       reject("Invalid XML");
     }
-    mpdXml = this.internalMpd.xml;
-    this.internalMpd.type = mpdXml.getAttribute("type") || "static";
-    this.internalMpd.availabilityStartTime = mpdXml.getAttribute("availabilityStartTime");
-    this.internalMpd.publishTime = mpdXml.getAttribute("publishTime");
-    this.internalMpd.timeShiftBufferDepth = mpdXml.getAttribute("timeShiftBufferDepth");
-    this.internalMpd.periods = parsePeriods(mpdXml);
+    mpdXml = _this.internalMpd.xml;
+    _this.internalMpd.type = mpdXml.getAttribute("type") || "static";
+    _this.internalMpd.availabilityStartTime = mpdXml.getAttribute("availabilityStartTime");
+    _this.internalMpd.publishTime = mpdXml.getAttribute("publishTime");
+    _this.internalMpd.timeShiftBufferDepth = mpdXml.getAttribute("timeShiftBufferDepth");
+    _this.internalMpd.periods = parsePeriods(mpdXml);
 
-    resolve(new DashManifest(this.internalMpd));
+    resolve(new DashManifest(_this.internalMpd));
   });
 };
 
 module.exports = DashParser;
 
 },{"./dash_manifest.js":2,"./dash_representation.js":4,"./dash_segmentlist.js":5,"./util.js":6,"xmldom":300}],4:[function(require,module,exports){
+"use strict";
+
 // Copyright 2016 Eyevinn Technology. All rights reserved
 // Use of this source code is governed by a MIT License
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
 
-const DashRepresentation = function constructor(representation, segmentList) {
-  let segments_ = [];
-  segmentList.segments.forEach(s => {
-    const segment = {
+var DashRepresentation = function constructor(representation, segmentList) {
+  var segments_ = [];
+  segmentList.segments.forEach(function (s) {
+    var segment = {
       t: s.t,
+      start: s.start,
+      end: s.end,
       durationInSeconds: s.durationInSeconds,
       uri: uriFromTemplate(segmentList.media, representation.id, s.t)
     };
@@ -287,7 +426,7 @@ const DashRepresentation = function constructor(representation, segmentList) {
 };
 
 function uriFromTemplate(template, id, time) {
-  let s = template;
+  var s = template;
   s = s.replace(/\$RepresentationID\$/, id);
   s = s.replace(/\$Time\$/, time);
   return s;
@@ -296,12 +435,14 @@ function uriFromTemplate(template, id, time) {
 module.exports = DashRepresentation;
 
 },{}],5:[function(require,module,exports){
+"use strict";
+
 // Copyright 2016 Eyevinn Technology. All rights reserved
 // Use of this source code is governed by a MIT License
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
 
-const DashSegmentList = function constructor(template) {
+var DashSegmentList = function constructor(template) {
   return {
     ts: template.timescale,
     mediaTemplate: template.media,
@@ -319,12 +460,12 @@ const DashSegmentList = function constructor(template) {
     },
 
     fromSegmentTimeline: function create(timeline) {
-      let nextStart;
+      var nextStart = void 0;
 
-      for (let i = 0; i < timeline.length; i++) {
-        let count = timeline[i].r || 1;
-        for (let j = 0; j < count; j++) {
-          const segment = {};
+      for (var i = 0; i < timeline.length; i++) {
+        var count = timeline[i].r || 1;
+        for (var j = 0; j < count; j++) {
+          var segment = {};
           if (typeof timeline[i].t !== "undefined" && j == 0) {
             segment.start = timeline[i].t / this.ts;
             segment.t = timeline[i].t;
@@ -346,20 +487,22 @@ const DashSegmentList = function constructor(template) {
 module.exports = DashSegmentList;
 
 },{}],6:[function(require,module,exports){
+'use strict';
+
 // Copyright 2016 Eyevinn Technology. All rights reserved
 // Use of this source code is governed by a MIT License
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
-const request = require("request");
+var request = require("request");
 
-const dateInSeconds = function (dateString) {
+var dateInSeconds = function dateInSeconds(dateString) {
   if (!dateString) return null;
 
   var result = Date.parse(dateString);
   return !isNaN(result) ? Math.floor(result / 1000.0) : null;
 };
 
-const durationInSeconds = function (durationString) {
+var durationInSeconds = function durationInSeconds(durationString) {
   if (!durationString) return null;
 
   var re = '^P(?:([0-9]*)Y)?(?:([0-9]*)M)?(?:([0-9]*)D)?' + '(?:T(?:([0-9]*)H)?(?:([0-9]*)M)?(?:([0-9.]*)S)?)?$';
@@ -382,29 +525,29 @@ const durationInSeconds = function (durationString) {
   return isFinite(d) ? d : null;
 };
 
-const findChildren = function (elem, name) {
-  const children = Array.prototype.filter.call(elem.childNodes, function (child) {
+var findChildren = function findChildren(elem, name) {
+  var children = Array.prototype.filter.call(elem.childNodes, function (child) {
     return child.tagName === name;
   });
   return children;
 };
 
-const toNumber = function (xmlattr) {
+var toNumber = function toNumber(xmlattr) {
   if (typeof xmlattr !== "undefined" && xmlattr !== "") {
     return Number(xmlattr);
   }
   return undefined;
 };
 
-const getBaseUrl = function (uri) {
-  const sp = uri.split("/");
-  const baseUrl = sp.slice(0, -1).join("/");
+var getBaseUrl = function getBaseUrl(uri) {
+  var sp = uri.split("/");
+  var baseUrl = sp.slice(0, -1).join("/");
   return baseUrl;
 };
 
-const requestXml = function (uri) {
-  return new Promise((resolve, reject) => {
-    request(uri, (error, response, body) => {
+var requestXml = function requestXml(uri) {
+  return new Promise(function (resolve, reject) {
+    request(uri, function (error, response, body) {
       if (!error && response.statusCode == 200) {
         resolve(body);
       }
@@ -413,9 +556,9 @@ const requestXml = function (uri) {
   });
 };
 
-const requestHeaders = function (uri) {
-  return new Promise((resolve, reject) => {
-    request({ method: "HEAD", uri: uri }, (error, response, body) => {
+var requestHeaders = function requestHeaders(uri) {
+  return new Promise(function (resolve, reject) {
+    request({ method: "HEAD", url: uri }, function (error, response, body) {
       if (!error) {
         resolve(response.headers);
       }
@@ -424,14 +567,18 @@ const requestHeaders = function (uri) {
   });
 };
 
-const sleep = function (millisec) {
-  const date = new Date();
+var sleep = function sleep(millisec) {
+  var date = new Date();
   do {
     d = new Date();
   } while (d - date < millisec);
 };
 
-const log = function (str, ...args) {
+var log = function log(str) {
+  for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+    args[_key - 1] = arguments[_key];
+  }
+
   if (args.length > 0) {
     console.log(str, args);
   } else {
@@ -440,15 +587,15 @@ const log = function (str, ...args) {
 };
 
 module.exports = {
-  durationInSeconds,
-  dateInSeconds,
-  findChildren,
-  toNumber,
-  requestXml,
-  requestHeaders,
-  getBaseUrl,
-  sleep,
-  log
+  durationInSeconds: durationInSeconds,
+  dateInSeconds: dateInSeconds,
+  findChildren: findChildren,
+  toNumber: toNumber,
+  requestXml: requestXml,
+  requestHeaders: requestHeaders,
+  getBaseUrl: getBaseUrl,
+  sleep: sleep,
+  log: log
 };
 
 },{"request":225}],7:[function(require,module,exports){
@@ -19904,7 +20051,7 @@ module.exports={
         "spec": ">=6.0.0 <7.0.0",
         "type": "range"
       },
-      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign"
+      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign"
     ]
   ],
   "_from": "elliptic@>=6.0.0 <7.0.0",
@@ -19939,7 +20086,7 @@ module.exports={
   "_shasum": "e4c81e0829cf0a65ab70e998b8232723b5c1bc48",
   "_shrinkwrap": null,
   "_spec": "elliptic@^6.0.0",
-  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign",
+  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -58512,7 +58659,7 @@ module.exports={
         "spec": ">=2.3.0 <2.4.0",
         "type": "range"
       },
-      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request"
+      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request"
     ]
   ],
   "_from": "tough-cookie@>=2.3.0 <2.4.0",
@@ -58548,7 +58695,7 @@ module.exports={
   "_shasum": "f081f76e4c85720e6c37a5faced737150d84072a",
   "_shrinkwrap": null,
   "_spec": "tough-cookie@~2.3.0",
-  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request",
+  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request",
   "author": {
     "name": "Jeremy Stashewsky",
     "email": "jstashewsky@salesforce.com"
