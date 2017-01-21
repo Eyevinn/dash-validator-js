@@ -49,6 +49,8 @@ describe("Dash Parser", () => {
       representations[0].segments.forEach((seg) => {
         expect(seg.uri).toBe("INTERSTELLAR(3541935_ISM)-" + representations[0].id + "-" + seg.t + ".dash");
       });
+      const numSegments = representations[0].segments.length;
+      expect(representations[0].segments[numSegments-1].t).toBe(242925);
       done();
     }).catch(fail).then(done);
   });

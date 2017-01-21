@@ -2,9 +2,10 @@ const DashValidator = require("../index.js");
 const util = require("../lib/util.js");
 const TestAssetsModule = require("./support/testassets.js");
 
-let failCount;
-
 describe("Dash Validator", () => {
+  let failCount;
+  let requestFailType;
+
   beforeEach((done) => {
     spyOn(util, "requestXml").and.callFake((uri) => {
       return new Promise((resolve, reject) => {
@@ -15,7 +16,17 @@ describe("Dash Validator", () => {
       });
     });
 
+    spyOn(util, "sleep").and.callFake(() => {
+      return;
+    });
+
+    spyOn(util, "log").and.callFake(() => {
+      return;
+    });
+
     failCount = 0;
+    requestFailType = "headers"; /* {headers|httperror} */
+
     spyOn(util, "requestHeaders").and.callFake((uri) => {
       return new Promise((resolve, reject) => {
         const mockHeaders = {
@@ -53,11 +64,15 @@ describe("Dash Validator", () => {
           age: '623144',
           'accept-ranges': 'bytes'
         };
-        if (failCount < 5) {
-          resolve(mockFailHeaders);
-          failCount++;
+        if (requestFailType === "headers") {
+          if (failCount < 5) {
+            resolve(mockFailHeaders);
+            failCount++;
+          }
+          resolve(mockHeaders);
+        } else if (requestFailType === "httperror") {
+          reject("HTTP error 500");
         }
-        resolve(mockHeaders);
       });
     });
 
@@ -68,7 +83,7 @@ describe("Dash Validator", () => {
   });
 
   it("can load and parse an MPD", (done) => {
-    validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
+    const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
       const duration = validator.duration();
       expect(duration).toBe(9719.68);
@@ -77,17 +92,47 @@ describe("Dash Validator", () => {
   });
 
   it("can verify all segments", (done) => {
-    validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
+    requestFailType = "headers";
+    const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
       validator.verifyAllSegments().then(result => {
         expect(result.failed.length).toBe(5);
         result.failed.forEach(f => {
           expect(f.headers["cache-control"]).toBe(undefined);
-          expect(f.headers["access-control-expose-headers"].split(',').indexOf("Date")).toBe(-1);
-          expect(f.headers["access-control-expose-headers"].split(',').indexOf("x-cdn-forward")).toBe(-1);
-          expect(f.headers["access-control-allow-headers"].split(',').indexOf("origin")).toBe(-1);
-          expect(f.headers["x-cdn-forward"]).toBe(undefined);
+          expect(f.headers["access-control-expose-headers"].split(",").indexOf("Date")).toBe(-1);
+          expect(f.headers["access-control-allow-headers"].split(",").indexOf("origin")).toBe(-1);
         });
+        done();
+      });
+    }).catch(fail).then(done);
+  });
+
+  it("can verify all segments using a custom verify function", (done) => {
+    requestFailType = "headers";
+    const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
+    function customVerifyFn(headers) {
+       if (headers["server"] === "Apache/2.4.7 (Ubuntu)") {
+         return false;
+       }
+       return true;
+    }
+    validator.load().then(() => {
+      const segments = validator.segmentUrls().slice(0, 100);
+      validator.verifySegments(customVerifyFn, segments).then(result => {
+        expect(result.failed.length).toBe(100);
+        done();
+      });
+    }).catch(fail).then(done);
+  });
+
+  it("should fail a segment if HTTP request fails", (done) => {
+    requestFailType = "httperror";
+    const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
+    validator.load().then(() => {
+      const segments = validator.segmentUrls().slice(0, 100);
+      validator.verifySegments(null, segments).then(result => {
+        expect(result.failed.length).toBe(100);
+        expect(result.failed[0].reason).toBe("HTTP error 500");
         done();
       });
     }).catch(fail).then(done);

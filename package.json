@@ -1,7 +1,7 @@
 {
   "name": "dash-validator",
-  "version": "0.1.0",
-  "description": "JS library to validate MPEG DASH manifests",
+  "version": "0.1.3",
+  "description": "JS library to validate MPEG DASH manifests and segments",
   "main": "index.js",
   "engines": {
     "node": "6.9.1"
@@ -11,7 +11,9 @@
     "test": "$(npm bin)/karma start karma.conf.js",
     "clean": "rm -f dist/*",
     "prebuild": "npm run clean && npm run test",
-    "build": "browserify index.js -o dist/dashvalidator.js -t babelify --presets es2015"
+    "build": "browserify index.js -o dist/dashvalidator.js -t babelify --presets es2015",
+    "version": "npm run build && git add -A dist",
+    "postversion": "git push && git push --tags"
   },
   "author": "Jonas Birme <jonas.birme@eyevinn.se> (http://eyvinn.github.io)",
   "license": "MIT",

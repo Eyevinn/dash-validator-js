@@ -26,6 +26,7 @@ module.exports = function (config) {
     singleRun: true,
     concurrency: Infinity,
     logLevel: config.LOG_INFO,
+    browserNoActivityTimeout: 5 * 60 * 1000,
     customLaunchers: {
         Chrome_travis_ci: {
             base: 'Chrome',

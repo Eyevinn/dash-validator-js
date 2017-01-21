@@ -1,3 +1,14 @@
+A Javascript library to validate content with the MPEG DASH streaming format
+
+## Usage (Node JS)
+
+```
+npm install --save dash-validator
+```
+
+Example implementation:
+
+```
 const DashValidator = require("dash-validator");
 
 const validator = new DashValidator("http://example.com/test.mpd");
@@ -12,3 +23,4 @@ validator.load().then(() => {
 function verifyFn(headers) {
   return (typeof headers["x-my-custom-header"] !== "undefined");
 }
+```
