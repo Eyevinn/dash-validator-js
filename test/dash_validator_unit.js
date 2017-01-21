@@ -75,10 +75,6 @@ describe("Dash Validator", () => {
         }
       });
     });
-
-    spyOn(util, "sleep").and.callFake(() => {
-      return;
-    }); 
     done();
   });
 
