@@ -12,7 +12,7 @@
     "test": "$(npm bin)/karma start karma.conf.js",
     "clean": "rm -f dist/*",
     "prebuild": "npm run clean && npm run test && npm run docs",
-    "build": "browserify index.js -o dist/dashvalidator.js -t babelify --presets es2015",
+    "build": "browserify index.js -o dist/dashvalidator.js -t [ babelify --presets es2015 ] && $(npm bin)/uglifyjs dist/dashvalidator.js -o dist/dashvalidator.min.js",
     "version": "npm run build && git add -A dist && git add -A docs",
     "postversion": "git push && git push --tags"
   },
