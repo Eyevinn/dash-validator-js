@@ -28,21 +28,24 @@ var DashValidator = function constructor(src) {
   this._src = src;
   this._manifest;
   this._base = "";
+  this._manifestHeaders;
 };
 
 /**
  * Download and parses MPEG DASH manifest
  * 
- * @returns {Promise} that resolves when the manifest is downloaded and parsed. 
+ * @returns {Promise} a Promise that resolves when the manifest is downloaded and parsed. 
  */
 DashValidator.prototype.load = function load() {
   var _this = this;
 
   return new Promise(function (resolve, reject) {
     _this._base = util.getBaseUrl(_this._src) + "/";
-    util.requestXml(_this._src).then(function (xml) {
+    util.requestXml(_this._src).then(function (resp) {
+      _this._manifestHeaders = resp.headers;
+
       var parser = new DashParser();
-      parser.parse(xml).then(function (manifest) {
+      parser.parse(resp.xml).then(function (manifest) {
         _this._manifest = manifest;
         resolve();
       }).catch(reject);
@@ -71,6 +74,13 @@ DashValidator.prototype.load = function load() {
  */
 
 /**
+ * @typedef ManifestVerifyResult
+ * @type {Object}
+ * @property {boolean} ok True if successful
+ * @property {Object} headers The response headers for the manifest request.
+ */
+
+/**
  * Verifies that the timestamp of the last segment for a MPEG DASH live-stream
  * does not differ more than 10 seconds (default) from actual time.
  * 
@@ -82,7 +92,7 @@ DashValidator.prototype.load = function load() {
  * @property {string} clockOffset The actual diff between last segment and now
  * 
  * @param {number} allowedDiff The allowed diff (in millisec, default is 10000)
- * @returns {Promise.<TimestampResult>} that resolves when the timing has been checked.
+ * @returns {Promise.<TimestampResult>} a Promise that resolves when the timing has been checked.
  */
 DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff) {
   var _this2 = this;
@@ -111,7 +121,7 @@ DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
  * @param {Array.<string>} segments An array of segment URIs
- * @returns {Promise.<SegmentVerifyResult>} that resolves when all segments are verified.
+ * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
 DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segments) {
   var _this3 = this;
@@ -119,32 +129,55 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
   return new Promise(function (resolve, reject) {
     var failed = [];
     var ok = [];
-    var segmentsChecked = 0;
-    var errors = 0;
-    var verify = verifyFn || defaultVerifyFn;
 
-    var _loop = function _loop(i) {
-      var seg = segments[i];
-      util.sleep(50);
-      util.requestHeaders(_this3._base + seg).then(function (headers) {
-        util.log("Checking " + _this3._base + seg);
-        if (verify(headers)) {
-          ok.push({ uri: seg });
-        } else {
-          failed.push({ uri: seg, headers: headers });
-        }
-        if (++segmentsChecked == segments.length) {
-          resolve({ failed: failed, ok: ok });
-        }
-      }).catch(function (err) {
-        errors++;
-        failed.push({ uri: seg, reason: err });
-      });
-    };
+    var it = util.iteratorFromArray(segments);
+    var base = _this3._base;
 
-    for (var i = 0; i < segments.length; i++) {
-      _loop(i);
+    function checkSegment(doneCb) {
+      var iter = it.next();
+      if (iter.done) {
+        doneCb();
+      } else {
+        (function () {
+          var segmentUrl = iter.value;
+          verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl).then(function (result) {
+            if (result.ok) {
+              ok.push({ uri: segmentUrl });
+            } else {
+              failed.push({ uri: segmentUrl, reason: result.reason, headers: result.headers });
+            }
+            util.sleep(50);
+            checkSegment(doneCb);
+          }).catch(function (error) {
+            console.error(error);
+          });
+        })();
+      }
     }
+
+    checkSegment(function () {
+      resolve({ failed: failed, ok: ok });
+    });
+  });
+};
+
+/**
+ * Verify that the manifest is ok.
+ * 
+ * @param {Function(headers, type)} verifyFn Function that is called to verify a segment.
+ *   If not provided a default will be used.
+ * @returns {Promise.<ManifestVerifyResult>} a Promise that resolves when the manifest
+ *   is verified.
+ */
+DashValidator.prototype.verifyManifest = function verifyManifest(verifyFn) {
+  var _this4 = this;
+
+  return new Promise(function (resolve, reject) {
+    var verify = verifyFn || defaultManifestVerifyFn;
+    var result = {};
+    result.ok = verify(_this4._manifestHeaders, _this4._manifest.type);
+    result.headers = _this4._manifestHeaders;
+    resolve(result);
   });
 };
 
@@ -153,7 +186,7 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
  * 
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
- * @returns {Promise.<SegmentVerifyResult>} that resolves when all segments are verified.
+ * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
 DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn) {
   var segments = this._manifest.segments;
@@ -184,6 +217,39 @@ function defaultVerifyFn(headers) {
     headersOk = false;
   }
   return headersOk;
+}
+
+function defaultManifestVerifyFn(headers, type) {
+  if (type == "dynamic") {
+    if (!headers["cache-control"]) {
+      return false;
+    }
+    var m = headers["cache-control"].match(/max-age=(\d+)/);
+    if (!m) {
+      return false;
+    }
+    if (m[1] > 10) {
+      // Max age for dynamic manifest should not cache this long
+      return false;
+    }
+  }
+  return true;
+}
+
+function verifySegment(verifyFn, segmentUrl) {
+  return new Promise(function (resolve, reject) {
+    var result = {};
+
+    util.requestHeaders(segmentUrl).then(function (headers) {
+      result.ok = verifyFn(headers);
+      result.headers = headers;
+      resolve(result);
+    }).catch(function (err) {
+      result.ok = false;
+      result.reason = err;
+      resolve(result);
+    });
+  });
 }
 
 /** Create a Dash Validator object */
@@ -487,13 +553,15 @@ var DashSegmentList = function constructor(template) {
 module.exports = DashSegmentList;
 
 },{}],6:[function(require,module,exports){
-'use strict';
+"use strict";
 
 // Copyright 2016 Eyevinn Technology. All rights reserved
 // Use of this source code is governed by a MIT License
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
 var request = require("request");
+var URL = require("url");
+var http = require("http");
 
 var dateInSeconds = function dateInSeconds(dateString) {
   if (!dateString) return null;
@@ -549,7 +617,7 @@ var requestXml = function requestXml(uri) {
   return new Promise(function (resolve, reject) {
     request(uri, function (error, response, body) {
       if (!error && response.statusCode == 200) {
-        resolve(body);
+        resolve({ xml: body, headers: response.headers });
       }
       reject(error);
     });
@@ -558,13 +626,30 @@ var requestXml = function requestXml(uri) {
 
 var requestHeaders = function requestHeaders(uri) {
   return new Promise(function (resolve, reject) {
-    request({ method: "HEAD", url: uri }, function (error, response, body) {
-      if (!error) {
+    var url = URL.parse(uri);
+    var options = {
+      method: "HEAD",
+      host: url.host,
+      path: url.path
+    };
+    var req = http.request(options, function (response) {
+      if (response.statusCode == 200) {
         resolve(response.headers);
       }
-      reject(error);
+      reject(response.statusCode);
     });
+    req.end();
   });
+};
+
+var iteratorFromArray = function iteratorFromArray(arr) {
+  var nextIndex = 0;
+
+  return {
+    next: function next() {
+      return nextIndex < arr.length ? { value: arr[nextIndex++], done: false } : { done: true };
+    }
+  };
 };
 
 var sleep = function sleep(millisec) {
@@ -593,12 +678,13 @@ module.exports = {
   toNumber: toNumber,
   requestXml: requestXml,
   requestHeaders: requestHeaders,
+  iteratorFromArray: iteratorFromArray,
   getBaseUrl: getBaseUrl,
   sleep: sleep,
   log: log
 };
 
-},{"request":225}],7:[function(require,module,exports){
+},{"http":271,"request":225,"url":287}],7:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
