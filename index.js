@@ -25,19 +25,22 @@ const DashValidator = function constructor(src) {
   this._src = src;
   this._manifest;
   this._base = "";
+  this._manifestHeaders;
 };
 
 /**
  * Download and parses MPEG DASH manifest
  * 
- * @returns {Promise} that resolves when the manifest is downloaded and parsed. 
+ * @returns {Promise} a Promise that resolves when the manifest is downloaded and parsed. 
  */
 DashValidator.prototype.load = function load() {
   return new Promise((resolve, reject) => {
     this._base = util.getBaseUrl(this._src) + "/";
-    util.requestXml(this._src).then((xml) => {
+    util.requestXml(this._src).then(resp => {
+      this._manifestHeaders = resp.headers;
+
       const parser = new DashParser();
-      parser.parse(xml).then((manifest) => {
+      parser.parse(resp.xml).then((manifest) => {
         this._manifest = manifest;
         resolve();
       }).catch(reject);
@@ -66,6 +69,13 @@ DashValidator.prototype.load = function load() {
  */
 
 /**
+ * @typedef ManifestVerifyResult
+ * @type {Object}
+ * @property {boolean} ok True if successful
+ * @property {Object} headers The response headers for the manifest request.
+ */
+
+/**
  * Verifies that the timestamp of the last segment for a MPEG DASH live-stream
  * does not differ more than 10 seconds (default) from actual time.
  * 
@@ -77,7 +87,7 @@ DashValidator.prototype.load = function load() {
  * @property {string} clockOffset The actual diff between last segment and now
  * 
  * @param {number} allowedDiff The allowed diff (in millisec, default is 10000)
- * @returns {Promise.<TimestampResult>} that resolves when the timing has been checked.
+ * @returns {Promise.<TimestampResult>} a Promise that resolves when the timing has been checked.
  */
 DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff) {
   return new Promise((resolve, reject) => {
@@ -104,33 +114,57 @@ DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
  * @param {Array.<string>} segments An array of segment URIs
- * @returns {Promise.<SegmentVerifyResult>} that resolves when all segments are verified.
+ * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
 DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segments) {
   return new Promise((resolve, reject) => {
     let failed = [];
     let ok = [];
-    let segmentsChecked = 0;
-    let errors = 0;
-    let verify = verifyFn || defaultVerifyFn;
-    for (let i=0; i<segments.length; i++) {
-      const seg = segments[i];
-      util.sleep(50);
-      util.requestHeaders(this._base + seg).then(headers => {
-        util.log("Checking " + this._base + seg);
-        if (verify(headers)) {
-          ok.push({ uri: seg });
-        } else {
-          failed.push({ uri: seg, headers: headers });
-        }
-        if (++segmentsChecked == segments.length) {
-          resolve({ failed: failed, ok: ok });
-        }
-      }).catch((err) => {
-        errors++;
-        failed.push({ uri: seg, reason: err });
-      });  
+  
+    let it = util.iteratorFromArray(segments);
+    const base = this._base;
+
+    function checkSegment(doneCb) {
+      const iter = it.next();
+      if (iter.done) {
+        doneCb();
+      } else {
+        const segmentUrl = iter.value;
+        verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl).then((result) => {
+          if (result.ok) {
+            ok.push({ uri: segmentUrl });
+          } else {
+            failed.push({ uri: segmentUrl, reason: result.reason, headers: result.headers });
+          }
+          util.sleep(50);
+          checkSegment(doneCb);
+        }).catch((error) => {
+          console.error(error);
+        });
+      }
     }
+
+    checkSegment(() => {
+      resolve({ failed: failed, ok: ok});
+    });
+  });
+};
+
+/**
+ * Verify that the manifest is ok.
+ * 
+ * @param {Function(headers, type)} verifyFn Function that is called to verify a segment.
+ *   If not provided a default will be used.
+ * @returns {Promise.<ManifestVerifyResult>} a Promise that resolves when the manifest
+ *   is verified.
+ */
+DashValidator.prototype.verifyManifest = function verifyManifest(verifyFn) {
+  return new Promise((resolve, reject) => {
+    const verify = verifyFn || defaultManifestVerifyFn;
+    const result = {};
+    result.ok = verify(this._manifestHeaders, this._manifest.type);
+    result.headers = this._manifestHeaders;
+    resolve(result);
   });
 };
 
@@ -139,7 +173,7 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
  * 
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
- * @returns {Promise.<SegmentVerifyResult>} that resolves when all segments are verified.
+ * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
 DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn) {
   const segments = this._manifest.segments;
@@ -173,6 +207,39 @@ function defaultVerifyFn(headers) {
     headersOk = false;
   }
   return headersOk;
+}
+
+function defaultManifestVerifyFn(headers, type) {
+  if (type == "dynamic") {
+    if (!headers["cache-control"]) {
+      return false;
+    }
+    const m = headers["cache-control"].match(/max-age=(\d+)/);
+    if (!m) {
+      return false;
+    }
+    if (m[1] > 10) {
+      // Max age for dynamic manifest should not cache this long
+      return false;
+    }
+  }
+  return true;
+}
+
+function verifySegment(verifyFn, segmentUrl) {
+  return new Promise((resolve, reject) => {
+    const result = {};
+
+    util.requestHeaders(segmentUrl).then((headers) => {
+      result.ok = verifyFn(headers);
+      result.headers = headers;
+      resolve(result);
+    }).catch((err) => {
+      result.ok = false;
+      result.reason = err;
+      resolve(result);
+    });
+  });
 }
 
 /** Create a Dash Validator object */
