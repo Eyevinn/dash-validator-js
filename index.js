@@ -122,25 +122,31 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
     let ok = [];
     let segmentsChecked = 0;
     let errors = 0;
-    const verify = verifyFn || defaultVerifyFn;
-    for (let i=0; i<segments.length; i++) {
-      const seg = segments[i];
-      util.sleep(50);
-      util.requestHeaders(this._base + seg).then(headers => {
-        util.log("Checking " + this._base + seg);
-        if (verify(headers)) {
-          ok.push({ uri: seg });
+  
+    let it = util.iteratorFromArray(segments);
+    const base = this._base;
+
+    function checkSegment(iter, doneCb) {
+      const segmentUrl = iter.next().value;
+      verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl).then((result) => {
+        if (result.ok) {
+          util.log("OK: " + segmentUrl);
+          ok.push({ uri: segmentUrl });
         } else {
-          failed.push({ uri: seg, headers: headers });
+          failed.push({ uri: segmentUrl, headers: result.headers });
         }
-        if (++segmentsChecked == segments.length) {
-          resolve({ failed: failed, ok: ok });
+        if(!iter.next().done) {
+          util.sleep(50);
+          checkSegment(iter, doneCb);
+        } else {
+          doneCb();
         }
-      }).catch((err) => {
-        errors++;
-        failed.push({ uri: seg, reason: err });
-      });  
+      });
     }
+
+    checkSegment(it, () => {
+      resolve({ failed: failed, ok: ok});
+    });
   });
 };
 
@@ -218,6 +224,23 @@ function defaultManifestVerifyFn(headers, type) {
     }
   }
   return true;
+}
+
+function verifySegment(verifyFn, segmentUrl) {
+  return new Promise((resolve, reject) => {
+    const result = {};
+
+    util.requestHeaders(segmentUrl).then((headers) => {
+      result.ok = verifyFn(headers);
+      result.headers = headers;
+      resolve(result);
+    }).catch((err) => {
+      result.ok = false;
+      result.reason = err;
+      result.headers = headers;
+      reject(result);
+    });
+  });
 }
 
 /** Create a Dash Validator object */
