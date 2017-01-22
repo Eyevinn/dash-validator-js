@@ -120,31 +120,31 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
   return new Promise((resolve, reject) => {
     let failed = [];
     let ok = [];
-    let segmentsChecked = 0;
-    let errors = 0;
   
     let it = util.iteratorFromArray(segments);
     const base = this._base;
 
-    function checkSegment(iter, doneCb) {
-      const segmentUrl = iter.next().value;
-      verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl).then((result) => {
-        if (result.ok) {
-          util.log("OK: " + segmentUrl);
-          ok.push({ uri: segmentUrl });
-        } else {
-          failed.push({ uri: segmentUrl, headers: result.headers });
-        }
-        if(!iter.next().done) {
+    function checkSegment(doneCb) {
+      const iter = it.next();
+      if (iter.done) {
+        doneCb();
+      } else {
+        const segmentUrl = iter.value;
+        verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl).then((result) => {
+          if (result.ok) {
+            ok.push({ uri: segmentUrl });
+          } else {
+            failed.push({ uri: segmentUrl, reason: result.reason, headers: result.headers });
+          }
           util.sleep(50);
-          checkSegment(iter, doneCb);
-        } else {
-          doneCb();
-        }
-      });
+          checkSegment(doneCb);
+        }).catch((error) => {
+          console.error(error);
+        });
+      }
     }
 
-    checkSegment(it, () => {
+    checkSegment(() => {
       resolve({ failed: failed, ok: ok});
     });
   });
@@ -237,8 +237,7 @@ function verifySegment(verifyFn, segmentUrl) {
     }).catch((err) => {
       result.ok = false;
       result.reason = err;
-      result.headers = headers;
-      reject(result);
+      resolve(result);
     });
   });
 }

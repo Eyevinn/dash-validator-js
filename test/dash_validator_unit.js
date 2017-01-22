@@ -142,11 +142,13 @@ describe("Dash Validator", () => {
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
       const segments = validator.segmentUrls().slice(0, 100);
-      validator.verifySegments(null, segments).then(result => {
+      validator.verifySegments(null, segments).then((result) => {
         expect(result.failed.length).toBe(100);
         expect(result.failed[0].reason).toBe("HTTP error 500");
         done();
-      });
+      }).catch((error) => {
+        console.error(error);
+      }).then(done);
     }).catch(fail).then(done);
   });
 });
