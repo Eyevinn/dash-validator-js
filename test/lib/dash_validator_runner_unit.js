@@ -18,9 +18,10 @@ describe("Dash Validator Runner", () => {
     done();
   });
 
-  it("can initiate a runner object and verify play head is updating", (done) => {
+  it("can handle a correct dynamic mpd", (done) => {
     const testAssets = new TestAssetsModule();
-    //MockDate.set("2017-01-23T17:15:00.000000Z");
+    let d = new Date("2017-01-23T17:15:00.000000Z");
+    MockDate.set(d);
     let start = new Date("2017-01-23T16:15:00.000000Z");
     let dynamicMpd = 
       testAssets.generateDynamicManifest(new Date("2016-12-23T19:17:47.832317Z"),
@@ -32,9 +33,11 @@ describe("Dash Validator Runner", () => {
     function mpdUpdater() {
       dynamicMpd =
         testAssets.generateDynamicManifest(new Date("2016-12-23T19:17:47.832317Z"),
-                                           new Date(start.getTime() + (10000 * loopCount++)), 3);                                 
+                                           new Date(start.getTime() + (10000 * loopCount)), 3);                                 
       mpd = new DashManifest(dynamicMpd);
       validatorRunner.updateMpd(mpd);
+      MockDate.set(d.getTime() + (10000 * loopCount));
+      loopCount++;
     }
 
     validatorRunner.start(3, mpdUpdater).then((result) => {
