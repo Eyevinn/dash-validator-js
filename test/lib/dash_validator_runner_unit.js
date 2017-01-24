@@ -8,31 +8,35 @@ const DashManifest = require("../../lib/dash_manifest.js");
 const TestAssetsModule = require("../support/testassets.js");
 
 describe("Dash Validator Runner", () => {
+  let testAssets;
+  let publishTime;
+
   beforeEach((done) => {
+    testAssets = new TestAssetsModule();
+    publishTime = new Date("2016-12-23T19:17:47.832317Z");
     jasmine.clock().install();
     done();
   });
 
   afterEach((done) => {
+    MockDate.reset();
     jasmine.clock().uninstall();
     done();
   });
 
   it("can handle a correct dynamic mpd", (done) => {
-    const testAssets = new TestAssetsModule();
     let d = new Date("2017-01-23T17:15:00.000000Z");
     MockDate.set(d);
     let start = new Date("2017-01-23T16:15:00.000000Z");
     let dynamicMpd = 
-      testAssets.generateDynamicManifest(new Date("2016-12-23T19:17:47.832317Z"),
-                                         start, 3);
+      testAssets.generateDynamicManifest(publishTime, start, 3);
     let mpd = new DashManifest(dynamicMpd);
-    const validatorRunner = new DashValidatorRunner(mpd);
+    const validatorRunner = new DashValidatorRunner(mpd, 10);
     let loopCount = 1;
 
     function mpdUpdater() {
       dynamicMpd =
-        testAssets.generateDynamicManifest(new Date("2016-12-23T19:17:47.832317Z"),
+        testAssets.generateDynamicManifest(publishTime,
                                            new Date(start.getTime() + (10000 * loopCount)), 3);                                 
       mpd = new DashManifest(dynamicMpd);
       validatorRunner.updateMpd(mpd);
@@ -42,10 +46,37 @@ describe("Dash Validator Runner", () => {
 
     validatorRunner.start(3, mpdUpdater).then((result) => {
       expect(result.ok).toBe(3);
+      expect(result.iterations).toBe(3);
       done();
     }).catch(fail).then(done);
     jasmine.clock().tick(10000);
     jasmine.clock().tick(10000);
     jasmine.clock().tick(10000);
   }); 
+
+  it("can handle a stale dynamic mpd", (done) => {
+    const d = new Date("2017-01-24T08:00:00.000000Z");
+    MockDate.set(d);
+    const start = new Date("2017-01-24T07:00:00.000000Z");
+    const staleMpd = testAssets.generateDynamicManifest(publishTime, start, 3);
+    let mpd = new DashManifest(staleMpd);
+    const validatorRunner = new DashValidatorRunner(staleMpd, 10);
+    let loopCount = 1;
+
+    function mpdUpdater() {
+      validatorRunner.updateMpd(mpd);
+      MockDate.set(d.getTime() + (10000 * loopCount));
+      loopCount++;
+    };
+    validatorRunner.start(5, mpdUpdater).then((result) => {
+      expect(result.ok).toBe(0);
+      expect(result.iterations).toBe(5);
+      done();
+    });
+    jasmine.clock().tick(10000);
+    jasmine.clock().tick(10000);
+    jasmine.clock().tick(10000);
+    jasmine.clock().tick(10000);
+    jasmine.clock().tick(10000);
+  });
 });

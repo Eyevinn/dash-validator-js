@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
 const DashParser = require("./lib/dash_parser.js");
+const DashValidatorRunner = require("./lib/dash_validator_runner.js");
 const util = require("./lib/util.js");
 
 /**
@@ -178,6 +179,24 @@ DashValidator.prototype.verifyManifest = function verifyManifest(verifyFn) {
 DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn) {
   const segments = this._manifest.segments;
   return this.verifySegments(verifyFn, segments);
+};
+
+/**
+ * Validate a dynamically updated MPEG DASH manifest usually used for live
+ * streaming
+ * 
+ * @param {number} iterations Number of iterations to test
+ */
+DashValidator.prototype.validateDynamicManifest = function validateDynamicManifest(iterations) {
+  return new Promise((resolve, reject) => {
+    const runner = new DashValidatorRunner(this._manifest, 10);
+    runner.start(() => {
+      // Download, parse and update MPD
+    }, iterations)
+    .then((result) => {
+      resolve(result);
+    });
+  });
 };
 
 /**
