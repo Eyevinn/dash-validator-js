@@ -124,9 +124,10 @@ DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
  * @param {Array.<string>} segments An array of segment URIs
+ * @param {boolean} doDownload When true use GET instead of HEAD
  * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
-DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segments) {
+DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segments, doDownload) {
   var _this3 = this;
 
   return new Promise(function (resolve, reject) {
@@ -143,7 +144,7 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
       } else {
         (function () {
           var segmentUrl = iter.value;
-          verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl).then(function (result) {
+          verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl, doDownload).then(function (result) {
             if (result.ok) {
               ok.push({ uri: segmentUrl });
             } else {
@@ -189,11 +190,12 @@ DashValidator.prototype.verifyManifest = function verifyManifest(verifyFn) {
  * 
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
+ * @param {boolean} doDownload When true use GET instead of HEAD
  * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
-DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn) {
+DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn, doDownload) {
   var segments = this._manifest.segments;
-  return this.verifySegments(verifyFn, segments);
+  return this.verifySegments(verifyFn, segments, doDownload);
 };
 
 /**
@@ -278,11 +280,17 @@ function defaultManifestVerifyFn(headers, type) {
   return true;
 }
 
-function verifySegment(verifyFn, segmentUrl) {
+function verifySegment(verifyFn, segmentUrl, doDownload) {
   return new Promise(function (resolve, reject) {
     var result = {};
 
-    util.requestHeaders(segmentUrl).then(function (headers) {
+    var reqFn = void 0;
+    if (!doDownload) {
+      reqFn = util.requestHeaders;
+    } else {
+      reqFn = util.requestCacheFill;
+    }
+    reqFn(segmentUrl).then(function (headers) {
       result.ok = verifyFn(headers);
       result.headers = headers;
       resolve(result);
@@ -739,6 +747,7 @@ module.exports = DashValidatorRunner;
 var request = require("request");
 var URL = require("url");
 var http = require("http");
+var fs = require("fs");
 
 var dateInSeconds = function dateInSeconds(dateString) {
   if (!dateString) return null;
@@ -801,6 +810,26 @@ var requestXml = function requestXml(uri) {
   });
 };
 
+var requestCacheFill = function requestCacheFill(uri) {
+  return new Promise(function (resolve, reject) {
+    var headers = void 0;
+    var statusCode = void 0;
+    var f = fs.createWriteStream("/dev/null");
+
+    request.get(uri).on("response", function (response) {
+      headers = response.headers;
+      statusCode = response.statusCode;
+      if (statusCode != 200) {
+        reject(statusCode);
+      }
+    }).pipe(f).on("error", function (error) {
+      reject(error);
+    }).on("finish", function () {
+      resolve(headers);
+    });
+  });
+};
+
 var requestHeaders = function requestHeaders(uri) {
   return new Promise(function (resolve, reject) {
     var url = URL.parse(uri);
@@ -855,13 +884,14 @@ module.exports = {
   toNumber: toNumber,
   requestXml: requestXml,
   requestHeaders: requestHeaders,
+  requestCacheFill: requestCacheFill,
   iteratorFromArray: iteratorFromArray,
   getBaseUrl: getBaseUrl,
   sleep: sleep,
   log: log
 };
 
-},{"http":272,"request":226,"url":288}],8:[function(require,module,exports){
+},{"fs":64,"http":272,"request":226,"url":288}],8:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
