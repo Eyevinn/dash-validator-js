@@ -243,6 +243,13 @@ DashValidator.prototype.segmentUrls = function segmentUrls() {
   return this._manifest.segments;
 };
 
+/**
+ * @returns {boolean} True if dynamic manifest, i.e. live stream
+ */
+DashValidator.prototype.isLive = function isLive() {
+  return this._manifest.type === "dynamic";
+};
+
 /** Private functions */
 
 /** @private */
