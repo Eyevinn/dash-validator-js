@@ -210,12 +210,15 @@ DashValidator.prototype.validateDynamicManifest = function validateDynamicManife
 
   return new Promise(function (resolve, reject) {
     _this5._runner.start(iterations, function () {
-      // Download, parse and update MPD
-      util.requestXml(_this5._src).then(function (resp) {
-        var parser = new DashParser();
-        parser.parse(resp.xml).then(function (manifest) {
-          _this5._manifest = manifest;
-          _this5._runner.updateMpd(_this5._manifest, resp.headers);
+      return new Promise(function (resolveUpdateMpd) {
+        // Download, parse and update MPD
+        util.requestXml(_this5._src).then(function (resp) {
+          var parser = new DashParser();
+          parser.parse(resp.xml).then(function (manifest) {
+            _this5._manifest = manifest;
+            _this5._runner.updateMpd(_this5._manifest, resp.headers);
+            resolveUpdateMpd();
+          });
         });
       });
     }).then(function (result) {
@@ -635,44 +638,48 @@ var DashValidatorRunner = function constructor(mpd, headers, updateTime) {
  * @param {Function} mpdUpdateFn Function that is called to update manifest
  */
 DashValidatorRunner.prototype.start = function start(iterations, mpdUpdateFn) {
-  var _this = this;
+  var _this2 = this;
 
   return new Promise(function (resolve, reject) {
     function timerFn() {
-      mpdUpdateFn();
-      var allOk = true;
-      this.trigger("checking", { mpd: this.mpd, headers: this.headers });
-      if (!hasValidPlayhead(this.mpd)) {
-        var failed = {};
-        failed.iteration = this.result.iterations;
-        failed.reason = "Time at playhead is invalid";
-        failed.timeAtHead = new Date(this.mpd.timeAtHead).toISOString();
-        failed.timeNow = new Date().toISOString();
-        this.trigger("invalidplayhead", failed);
-        this.result.failed.push(failed);
-        allOk = false;
-      }
-      if (this.headers && !hasValidHeaders(this.lastHeaders, this.headers)) {
-        var _failed = {};
-        _failed.iteration = this.result.iterations;
-        _failed.reason = "Invalid headers";
-        _failed.headers = this.headers;
-        this.trigger("invalidheaders", _failed);
-        this.result.failed.push(_failed);
-        allOk = false;
-      }
-      if (allOk) {
-        this.result.ok++;
-      }
-      this.result.iterations++;
-      this.lastHeaders = this.headers;
-      if (this.result.iterations >= iterations) {
-        resolve(this.result);
-      } else {
-        setTimeout(timerFn.bind(this), this.updateTime * 1000);
-      }
+      var _this = this;
+
+      mpdUpdateFn().then(function () {
+        var allOk = true;
+        _this.trigger("checking", { mpd: _this.mpd, headers: _this.headers });
+        if (!hasValidPlayhead(_this.mpd)) {
+          var failed = {};
+          failed.iteration = _this.result.iterations;
+          failed.reason = "Time at playhead is invalid";
+          failed.timeAtHead = new Date(_this.mpd.timeAtHead).toISOString();
+          failed.timeNow = new Date().toISOString();
+          _this.trigger("invalidplayhead", failed);
+          _this.result.failed.push(failed);
+          allOk = false;
+        }
+        if (_this.headers && !hasValidHeaders(_this.lastHeaders, _this.headers)) {
+          var _failed = {};
+          _failed.iteration = _this.result.iterations;
+          _failed.reason = "Invalid headers";
+          _failed.headers = _this.headers;
+          _this.trigger("invalidheaders", _failed);
+          _this.result.failed.push(_failed);
+          allOk = false;
+        }
+        if (allOk) {
+          _this.result.ok++;
+        }
+        _this.result.iterations++;
+        _this.lastHeaders = _this.headers;
+        if (_this.result.iterations >= iterations) {
+          resolve(_this.result);
+        } else {
+          setTimeout(timerFn.bind(_this), _this.updateTime * 1000);
+        }
+      });
     }
-    setTimeout(timerFn.bind(_this), _this.updateTime * 1000);
+
+    setTimeout(timerFn.bind(_this2), _this2.updateTime * 1000);
   });
 };
 
@@ -20344,7 +20351,7 @@ module.exports={
         "spec": ">=6.0.0 <7.0.0",
         "type": "range"
       },
-      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign"
+      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign"
     ]
   ],
   "_from": "elliptic@>=6.0.0 <7.0.0",
@@ -20379,7 +20386,7 @@ module.exports={
   "_shasum": "e4c81e0829cf0a65ab70e998b8232723b5c1bc48",
   "_shrinkwrap": null,
   "_spec": "elliptic@^6.0.0",
-  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign",
+  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -58952,7 +58959,7 @@ module.exports={
         "spec": ">=2.3.0 <2.4.0",
         "type": "range"
       },
-      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request"
+      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request"
     ]
   ],
   "_from": "tough-cookie@>=2.3.0 <2.4.0",
@@ -58988,7 +58995,7 @@ module.exports={
   "_shasum": "f081f76e4c85720e6c37a5faced737150d84072a",
   "_shrinkwrap": null,
   "_spec": "tough-cookie@~2.3.0",
-  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request",
+  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request",
   "author": {
     "name": "Jeremy Stashewsky",
     "email": "jstashewsky@salesforce.com"
