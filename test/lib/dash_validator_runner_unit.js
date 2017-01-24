@@ -24,9 +24,7 @@ describe("Dash Validator Runner", () => {
     done();
   });
 
-  // Disabled until I have figured out how to make the Jasmine clock tick
-  // when a promise is pending
-  xit("can handle a correct dynamic mpd", (done) => {
+  it("can handle a correct dynamic mpd", (done) => {
     let d = new Date("2017-01-23T17:15:00.000000Z");
     MockDate.set(d);
     let start = new Date("2017-01-23T16:15:00.000000Z");
@@ -57,9 +55,10 @@ describe("Dash Validator Runner", () => {
     jasmine.clock().tick(10000);
     jasmine.clock().tick(10000);
     jasmine.clock().tick(10000);
+    done();
   }); 
 
-  xit("can handle a stale dynamic mpd", (done) => {
+  it("can handle a stale dynamic mpd", (done) => {
     const d = new Date("2017-01-24T08:10:00.000000Z");
     MockDate.set(d);
     const start = new Date("2017-01-24T07:00:00.000000Z");
@@ -86,5 +85,20 @@ describe("Dash Validator Runner", () => {
     jasmine.clock().tick(10000);
     jasmine.clock().tick(10000);
     jasmine.clock().tick(10000);
+    done();
+  });
+
+  it("can handle event listeners", (done) => {
+    const runner = new DashValidatorRunner({}, null, 10);
+    runner.on("testevent1", args => {
+      expect(args.foo).toBe("bar");
+    });
+    runner.on("testevent2", args => {
+      expect(args[0]).toBe("arg1");
+      expect(args[1]).toBe("arg2");
+    });
+    runner.trigger("testevent1", { foo: "bar" });
+    runner.trigger("testevent2", "arg1", "arg2");
+    done();   
   });
 });
