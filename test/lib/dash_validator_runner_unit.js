@@ -31,7 +31,7 @@ describe("Dash Validator Runner", () => {
     let dynamicMpd = 
       testAssets.generateDynamicManifest(publishTime, start, 3);
     let mpd = new DashManifest(dynamicMpd);
-    const validatorRunner = new DashValidatorRunner(mpd, 10);
+    const validatorRunner = new DashValidatorRunner(mpd, null, 10);
     let loopCount = 1;
 
     function mpdUpdater() {
@@ -39,7 +39,7 @@ describe("Dash Validator Runner", () => {
         testAssets.generateDynamicManifest(publishTime,
                                            new Date(start.getTime() + (10000 * loopCount)), 3);                                 
       mpd = new DashManifest(dynamicMpd);
-      validatorRunner.updateMpd(mpd);
+      validatorRunner.updateMpd(mpd, null);
       MockDate.set(d.getTime() + (10000 * loopCount));
       loopCount++;
     }
@@ -55,16 +55,16 @@ describe("Dash Validator Runner", () => {
   }); 
 
   it("can handle a stale dynamic mpd", (done) => {
-    const d = new Date("2017-01-24T08:00:00.000000Z");
+    const d = new Date("2017-01-24T08:10:00.000000Z");
     MockDate.set(d);
     const start = new Date("2017-01-24T07:00:00.000000Z");
     const staleMpd = testAssets.generateDynamicManifest(publishTime, start, 3);
     let mpd = new DashManifest(staleMpd);
-    const validatorRunner = new DashValidatorRunner(staleMpd, 10);
+    const validatorRunner = new DashValidatorRunner(staleMpd, null, 10);
     let loopCount = 1;
 
     function mpdUpdater() {
-      validatorRunner.updateMpd(mpd);
+      validatorRunner.updateMpd(mpd, null);
       MockDate.set(d.getTime() + (10000 * loopCount));
       loopCount++;
     };

@@ -27,6 +27,7 @@ const DashValidator = function constructor(src) {
   this._manifest;
   this._base = "";
   this._manifestHeaders;
+  this._runner;
 };
 
 /**
@@ -43,6 +44,7 @@ DashValidator.prototype.load = function load() {
       const parser = new DashParser();
       parser.parse(resp.xml).then((manifest) => {
         this._manifest = manifest;
+        this._runner = new DashValidatorRunner(this._manifest, this._manifestHeaders, 10);
         resolve();
       }).catch(reject);
     }).catch(reject);
@@ -186,17 +188,30 @@ DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn)
  * streaming
  * 
  * @param {number} iterations Number of iterations to test
+ * @returns {Promise}
  */
 DashValidator.prototype.validateDynamicManifest = function validateDynamicManifest(iterations) {
   return new Promise((resolve, reject) => {
-    const runner = new DashValidatorRunner(this._manifest, 10);
-    runner.start(() => {
+    this._runner.start(iterations, () => {
       // Download, parse and update MPD
-    }, iterations)
+      util.requestXml(this._src).then(resp => {
+        const parser = new DashParser();
+        parser.parse(resp.xml).then((manifest) => {
+          this._manifest = manifest;
+          this._runner.updateMpd(this._manifest, resp.headers);
+        })
+      });
+    })
     .then((result) => {
       resolve(result);
-    });
+    }).catch(reject);
   });
+};
+
+DashValidator.prototype.on = function on(eventName, fn) {
+  if (["invalidplayhead", "invalidheaders", "checking"].indexOf(eventName) != -1) {
+    this._runner.on(eventName, fn);
+  }
 };
 
 /**
