@@ -713,7 +713,11 @@ DashValidatorRunner.prototype.trigger = function trigger(runnerEvent) {
     return l.eventName == runnerEvent;
   }).forEach(function (l) {
     if (l.fn) {
-      l.fn(args);
+      if (args.length == 1) {
+        l.fn(args[0]);
+      } else {
+        l.fn(args);
+      }
     }
   });
 };
