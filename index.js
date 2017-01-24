@@ -195,13 +195,16 @@ DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn,
 DashValidator.prototype.validateDynamicManifest = function validateDynamicManifest(iterations) {
   return new Promise((resolve, reject) => {
     this._runner.start(iterations, () => {
-      // Download, parse and update MPD
-      util.requestXml(this._src).then(resp => {
-        const parser = new DashParser();
-        parser.parse(resp.xml).then((manifest) => {
-          this._manifest = manifest;
-          this._runner.updateMpd(this._manifest, resp.headers);
-        })
+      return new Promise((resolveUpdateMpd) => {
+        // Download, parse and update MPD
+        util.requestXml(this._src).then(resp => {
+          const parser = new DashParser();
+          parser.parse(resp.xml).then((manifest) => {
+            this._manifest = manifest;
+            this._runner.updateMpd(this._manifest, resp.headers);
+            resolveUpdateMpd();
+          })
+        });
       });
     })
     .then((result) => {
