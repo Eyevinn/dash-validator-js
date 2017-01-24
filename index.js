@@ -117,9 +117,10 @@ DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
  * @param {Array.<string>} segments An array of segment URIs
+ * @param {boolean} doDownload When true use GET instead of HEAD
  * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
-DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segments) {
+DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segments, doDownload) {
   return new Promise((resolve, reject) => {
     let failed = [];
     let ok = [];
@@ -133,7 +134,7 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
         doneCb();
       } else {
         const segmentUrl = iter.value;
-        verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl).then((result) => {
+        verifySegment(verifyFn || defaultVerifyFn, base + segmentUrl, doDownload).then((result) => {
           if (result.ok) {
             ok.push({ uri: segmentUrl });
           } else {
@@ -176,11 +177,12 @@ DashValidator.prototype.verifyManifest = function verifyManifest(verifyFn) {
  * 
  * @param {Function(Object)} verifyFn Function that is called to verify a segment.
  *    If not provided a default will be used
+ * @param {boolean} doDownload When true use GET instead of HEAD
  * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
  */
-DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn) {
+DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn, doDownload) {
   const segments = this._manifest.segments;
-  return this.verifySegments(verifyFn, segments);
+  return this.verifySegments(verifyFn, segments, doDownload);
 };
 
 /**
@@ -267,11 +269,17 @@ function defaultManifestVerifyFn(headers, type) {
   return true;
 }
 
-function verifySegment(verifyFn, segmentUrl) {
+function verifySegment(verifyFn, segmentUrl, doDownload) {
   return new Promise((resolve, reject) => {
     const result = {};
 
-    util.requestHeaders(segmentUrl).then((headers) => {
+    let reqFn;
+    if (!doDownload) {
+      reqFn = util.requestHeaders;
+    } else {
+      reqFn = util.requestCacheFill;
+    }
+    reqFn(segmentUrl).then((headers) => {
       result.ok = verifyFn(headers);
       result.headers = headers;
       resolve(result);

@@ -109,7 +109,7 @@ describe("Dash Validator", () => {
     requestFailType = "headers";
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
-      validator.verifyAllSegments().then(result => {
+      validator.verifyAllSegments(null, false).then(result => {
         expect(result.failed.length).toBe(5);
         result.failed.forEach(f => {
           expect(f.headers["cache-control"]).toBe(undefined);
@@ -132,7 +132,7 @@ describe("Dash Validator", () => {
     }
     validator.load().then(() => {
       const segments = validator.segmentUrls().slice(0, 100);
-      validator.verifySegments(customVerifyFn, segments).then(result => {
+      validator.verifySegments(customVerifyFn, segments, false).then(result => {
         expect(result.failed.length).toBe(100);
         done();
       });
@@ -144,7 +144,7 @@ describe("Dash Validator", () => {
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
       const segments = validator.segmentUrls().slice(0, 100);
-      validator.verifySegments(null, segments).then((result) => {
+      validator.verifySegments(null, segments, false).then((result) => {
         expect(result.failed.length).toBe(100);
         expect(result.failed[0].reason).toBe("HTTP error 500");
         done();
