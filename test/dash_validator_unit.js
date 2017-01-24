@@ -83,6 +83,7 @@ describe("Dash Validator", () => {
   it("can load and parse an MPD", (done) => {
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
+      expect(validator.isLive()).toBe(false);
       const duration = validator.duration();
       expect(duration).toBe(9719.68);
       done();
@@ -95,6 +96,7 @@ describe("Dash Validator", () => {
     };
     const validator = new DashValidator("http://mock.example.com/usp-live.mpd");
     validator.load().then(() => {
+      expect(validator.isLive()).toBe(true);
       validator.verifyManifest().then(result => {
         expect(result.ok).toBe(false);
         expect(result.headers["cache-control"]).toBe("max-age=2000");
