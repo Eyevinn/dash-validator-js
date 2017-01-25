@@ -46,7 +46,8 @@ module.exports = function (config) {
       dir: "coverage/",
       reporters: [
         { type: "text-summary" },
-        { type: "html", subdir: "./" }
+        { type: "html", subdir: "./" },
+        { type: "lcovonly", subdir: "./" }
       ]
     }
   };

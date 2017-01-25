@@ -10,6 +10,7 @@
   "scripts": {
     "docs": "$(npm bin)/jsdoc -c jsdoc.conf.json",
     "test": "$(npm bin)/karma start karma.conf.js",
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
     "clean": "rm -rf dist/* docs/*",
     "prebuild": "npm run clean && npm run test && npm run docs",
     "build": "browserify index.js -o dist/dashvalidator.js -t [ babelify --presets es2015 ] && $(npm bin)/uglifyjs dist/dashvalidator.js -o dist/dashvalidator.min.js",
@@ -25,6 +26,7 @@
     "babelify": "^7.3.0",
     "browserify": "^13.1.1",
     "browserify-istanbul": "^2.0.0",
+    "coveralls": "^2.11.15",
     "jasmine": "^2.5.2",
     "jasmine-jquery": "^2.1.1",
     "jsdoc": "^3.4.3",

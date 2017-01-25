@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/Eyevinn/dash-validator-js.svg?branch=master)](https://travis-ci.org/Eyevinn/dash-validator-js)
+[![Coverage Status](https://coveralls.io/repos/github/Eyevinn/dash-validator-js/badge.svg)](https://coveralls.io/github/Eyevinn/dash-validator-js)
+
 A Javascript library to validate content with the MPEG DASH streaming format
 
 ## Usage (Node JS)

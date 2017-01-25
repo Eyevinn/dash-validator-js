@@ -2,3 +2,4 @@ node_modules/
 *.swp
 .vscode/
 coverage/
+.coveralls.yml
