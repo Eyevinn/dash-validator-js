@@ -47,15 +47,12 @@ describe("Dash Validator Runner", () => {
       });
     }
 
-    validatorRunner.start(3, mpdUpdater).then((result) => {
-      expect(result.ok).toBe(3);
-      expect(result.iterations).toBe(3);
+    validatorRunner.start(1, mpdUpdater).then((result) => {
+      expect(result.ok).toBe(1);
+      expect(result.iterations).toBe(1);
       done();
     }).catch(fail).then(done);
     jasmine.clock().tick(10000);
-    jasmine.clock().tick(10000);
-    jasmine.clock().tick(10000);
-    done();
   }); 
 
   it("can handle a stale dynamic mpd", (done) => {
@@ -75,19 +72,84 @@ describe("Dash Validator Runner", () => {
         resolve();
       });
     };
-    validatorRunner.start(5, mpdUpdater).then((result) => {
+    validatorRunner.start(1, mpdUpdater).then((result) => {
       expect(result.ok).toBe(0);
-      expect(result.iterations).toBe(5);
+      expect(result.iterations).toBe(1);
       done();
     });
     jasmine.clock().tick(10000);
-    jasmine.clock().tick(10000);
-    jasmine.clock().tick(10000);
-    jasmine.clock().tick(10000);
-    jasmine.clock().tick(10000);
-    done();
   });
 
+  it("can handle a dynamic mpd with bad headers", (done) => {
+    let d = new Date("2017-01-23T17:15:00.000000Z");
+    MockDate.set(d);
+    let start = new Date("2017-01-23T16:15:00.000000Z");
+    let dynamicMpd = 
+      testAssets.generateDynamicManifest(publishTime, start, 3);
+    let mpd = new DashManifest(dynamicMpd);
+    const badHeaders = {
+      date: new Date("2017-01-23T17:15:00.000000Z"),
+    }
+    const validatorRunner = new DashValidatorRunner(mpd, badHeaders, 10);
+    let loopCount = 1;
+
+    function mpdUpdater() {
+      return new Promise((resolve) => {
+        dynamicMpd =
+          testAssets.generateDynamicManifest(publishTime,
+                                            new Date(start.getTime() + (10000 * loopCount)), 3);                                 
+        mpd = new DashManifest(dynamicMpd);
+        validatorRunner.updateMpd(mpd, badHeaders);
+        MockDate.set(d.getTime() + (10000 * loopCount));
+        loopCount++;
+        resolve();
+      });
+    }
+
+    validatorRunner.start(1, mpdUpdater).then((result) => {
+      expect(result.failed.length).toBe(1);
+      expect(result.iterations).toBe(1);
+      done();
+    }).catch(fail).then(done);
+    jasmine.clock().tick(10000);
+  });
+
+  it("can handle a dynamic mpd with correct headers", (done) => {
+    let d = new Date("2017-01-23T17:15:00.000000Z");
+    MockDate.set(d);
+    let start = new Date("2017-01-23T16:15:00.000000Z");
+    let dynamicMpd = 
+      testAssets.generateDynamicManifest(publishTime, start, 3);
+    let mpd = new DashManifest(dynamicMpd);
+    const correctHeaders = {
+      date: new Date("2017-01-23T17:15:00.000000Z"),
+    }
+    const validatorRunner = new DashValidatorRunner(mpd, correctHeaders, 10);
+    let loopCount = 1;
+
+    function mpdUpdater() {
+      return new Promise((resolve) => {
+        const newCorrectHeaders = {
+          date: new Date("2017-01-23T17:20:00.000000Z")
+        }; 
+        dynamicMpd =
+          testAssets.generateDynamicManifest(publishTime,
+                                            new Date(start.getTime() + (10000 * loopCount)), 3);                                 
+        mpd = new DashManifest(dynamicMpd);
+        validatorRunner.updateMpd(mpd, newCorrectHeaders);
+        MockDate.set(d.getTime() + (10000 * loopCount));
+        loopCount++;
+        resolve();
+      });
+    }
+
+    validatorRunner.start(1, mpdUpdater).then((result) => {
+      expect(result.ok).toBe(1);
+      expect(result.iterations).toBe(1);
+      done();
+    }).catch(fail).then(done);
+    jasmine.clock().tick(10000);
+  });
   it("can handle event listeners", (done) => {
     const runner = new DashValidatorRunner({}, null, 10);
     runner.on("testevent1", args => {
