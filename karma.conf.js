@@ -1,3 +1,5 @@
+var istanbul = require("browserify-istanbul");
+
 module.exports = function (config) {
   var configuration = {
     basePath: '',
@@ -6,12 +8,19 @@ module.exports = function (config) {
       debug: true,
       transform: [
         ['babelify', {plugins: ['babel-plugin-espower']}],
+        istanbul({
+          ignore: ["test/**", "**/node_modules/**"],
+          instrumenterConfig: {
+            embedSource: true
+          }
+        })
       ],
     },
+    reporters: ['progress', 'coverage'],
     preprocessors: {
-      'index.js': 'browserify',
-      'lib/**/*.js': 'browserify',
-      'test/**/*.js': 'browserify',
+      'index.js': ['browserify', 'coverage'],
+      'lib/**/*.js': ['browserify', 'coverage'],
+      'test/**/*.js': ['browserify'],
     },
     files: [
       'node_modules/babel-polyfill/dist/polyfill.js',
@@ -32,6 +41,13 @@ module.exports = function (config) {
             base: 'Chrome',
             flags: ['--no-sandbox']
         }
+    },
+    coverageReporter: {
+      dir: "coverage/",
+      reporters: [
+        { type: "text-summary" },
+        { type: "html", subdir: "./" }
+      ]
     }
   };
   if (process.env.TRAVIS) {
