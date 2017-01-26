@@ -613,6 +613,8 @@ module.exports = DashSegmentList;
 // license that can be found in the LICENSE file.
 // Author: Jonas Birme (Eyevinn Technology)
 
+var util = require("./util.js");
+
 /**
  * @param {DashManifest} mpd Manifest to initiate with
  * @param {number} updateTime How often to run a validation iteration (in seconds)
@@ -748,7 +750,7 @@ function hasValidHeaders(lastHeaders, currentHeaders) {
 
 module.exports = DashValidatorRunner;
 
-},{}],7:[function(require,module,exports){
+},{"./util.js":7}],7:[function(require,module,exports){
 "use strict";
 
 // Copyright 2016 Eyevinn Technology. All rights reserved
@@ -826,12 +828,15 @@ var requestCacheFill = function requestCacheFill(uri) {
     var headers = void 0;
     var statusCode = void 0;
     var f = fs.createWriteStream("/dev/null");
+    f.on("error", function (error) {
+      reject(error);
+    });
 
     request.get(uri).on("response", function (response) {
       headers = response.headers;
       statusCode = response.statusCode;
       if (statusCode != 200) {
-        reject(statusCode);
+        reject("HTTP error " + statusCode);
       }
     }).pipe(f).on("error", function (error) {
       reject(error);
@@ -20355,7 +20360,7 @@ module.exports={
         "spec": ">=6.0.0 <7.0.0",
         "type": "range"
       },
-      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign"
+      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign"
     ]
   ],
   "_from": "elliptic@>=6.0.0 <7.0.0",
@@ -20390,7 +20395,7 @@ module.exports={
   "_shasum": "e4c81e0829cf0a65ab70e998b8232723b5c1bc48",
   "_shrinkwrap": null,
   "_spec": "elliptic@^6.0.0",
-  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign",
+  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -58963,7 +58968,7 @@ module.exports={
         "spec": ">=2.3.0 <2.4.0",
         "type": "range"
       },
-      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request"
+      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request"
     ]
   ],
   "_from": "tough-cookie@>=2.3.0 <2.4.0",
@@ -58999,7 +59004,7 @@ module.exports={
   "_shasum": "f081f76e4c85720e6c37a5faced737150d84072a",
   "_shrinkwrap": null,
   "_spec": "tough-cookie@~2.3.0",
-  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request",
+  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request",
   "author": {
     "name": "Jeremy Stashewsky",
     "email": "jstashewsky@salesforce.com"
