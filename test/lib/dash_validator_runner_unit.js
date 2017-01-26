@@ -89,6 +89,7 @@ describe("Dash Validator Runner", () => {
     let mpd = new DashManifest(dynamicMpd);
     const badHeaders = {
       date: new Date("2017-01-23T17:15:00.000000Z"),
+      "last-modified": new Date("2017-01-23T17:15:00.000000Z")
     }
     const validatorRunner = new DashValidatorRunner(mpd, badHeaders, 10);
     let loopCount = 1;
@@ -123,6 +124,7 @@ describe("Dash Validator Runner", () => {
     let mpd = new DashManifest(dynamicMpd);
     const correctHeaders = {
       date: new Date("2017-01-23T17:15:00.000000Z"),
+      "last-modified": new Date("2017-01-23T17:15:00.000000Z"),
     }
     const validatorRunner = new DashValidatorRunner(mpd, correctHeaders, 10);
     let loopCount = 1;
@@ -130,7 +132,8 @@ describe("Dash Validator Runner", () => {
     function mpdUpdater() {
       return new Promise((resolve) => {
         const newCorrectHeaders = {
-          date: new Date("2017-01-23T17:20:00.000000Z")
+          date: new Date("2017-01-23T17:20:00.000000Z"),
+          "last-modified": new Date("2017-01-23T17:20:00.000000Z")
         }; 
         dynamicMpd =
           testAssets.generateDynamicManifest(publishTime,
