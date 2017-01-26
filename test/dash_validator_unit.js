@@ -77,6 +77,12 @@ describe("Dash Validator", () => {
         }
       });
     });
+
+    spyOn(util, "requestCacheFill").and.callFake((uri) => {
+      return new Promise((resolve, reject) => {
+        reject("HTTP error 404");
+      });
+    });
     done();
   });
 
@@ -147,6 +153,20 @@ describe("Dash Validator", () => {
       validator.verifySegments(null, segments, false).then((result) => {
         expect(result.failed.length).toBe(100);
         expect(result.failed[0].reason).toBe("HTTP error 500");
+        done();
+      }).catch((error) => {
+        console.error(error);
+      }).then(done);
+    }).catch(fail).then(done);
+  });
+
+  it("should fail a segment if it cannot be downloaded", (done) => {
+    const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
+    validator.load().then(() => {
+      const segments = validator.segmentUrls().slice(50, 70);
+      validator.verifySegments(null, segments, true).then((result) => {
+        expect(result.failed.length).toBe(20);
+        expect(result.failed[0].reason).toBe("HTTP error 404");
         done();
       }).catch((error) => {
         console.error(error);
