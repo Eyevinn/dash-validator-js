@@ -13,6 +13,9 @@ const TestAssets = function constructor() {
 
   this.assets.push(loadAsset("usp-live", "usp.live.mpd"));
   this.assets.push(loadAsset("usp-vod", "usp.vod.mpd"));
+  this.assets.push(loadAsset("dynamic.1.mpd", "dynamic.1.mpd"));
+  this.assets.push(loadAsset("dynamic.2.mpd", "dynamic.2.mpd"));
+  this.assets.push(loadAsset("dynamic.3.mpd", "dynamic.3.mpd"));
 };
 
 TestAssets.prototype.getAssetByName = function(name) {

@@ -193,9 +193,10 @@ DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn,
  * streaming
  * 
  * @param {number} iterations Number of iterations to test
+ * @param {Function} _optIterator For testing purposes
  * @returns {Promise}
  */
-DashValidator.prototype.validateDynamicManifest = function validateDynamicManifest(iterations) {
+DashValidator.prototype.validateDynamicManifest = function validateDynamicManifest(iterations, _optIterator) {
   return new Promise((resolve, reject) => {
     this._runner.start(iterations, () => {
       return new Promise((resolveUpdateMpd) => {
@@ -209,7 +210,7 @@ DashValidator.prototype.validateDynamicManifest = function validateDynamicManife
           })
         });
       });
-    })
+    }, _optIterator)
     .then((result) => {
       resolve(result);
     }).catch(reject);

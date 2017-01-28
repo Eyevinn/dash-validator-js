@@ -7,14 +7,23 @@ describe("Dash Validator", () => {
   let failCount;
   let requestFailType;
   let mockManifestHeaders;
+  let dynamicCount = 1;
 
   beforeEach((done) => {
+    jasmine.clock().install();
+
     spyOn(util, "requestXml").and.callFake((uri) => {
       return new Promise((resolve, reject) => {
         const testAssets = new TestAssetsModule();
-        const m = uri.match(/^.*\/(.*?)\.mpd$/);
-        const asset = testAssets.getAssetByName(m[1]);
-        resolve({ xml: asset.xml, headers: mockManifestHeaders });
+        if (uri.match("MOCK-DYNAMIC")) {
+          const asset = testAssets.getAssetByName("dynamic." + dynamicCount + ".mpd");
+          dynamicCount++;
+          resolve({ xml: asset.xml, headers: mockManifestHeaders });
+        } else {
+          const m = uri.match(/^.*\/(.*?)\.mpd$/);
+          const asset = testAssets.getAssetByName(m[1]);
+          resolve({ xml: asset.xml, headers: mockManifestHeaders });
+        }
       });
     });
 
@@ -84,11 +93,13 @@ describe("Dash Validator", () => {
         reject("HTTP error 404");
       });
     });
+
     done();
   });
 
   afterEach((done) => {
     MockDate.reset();
+    jasmine.clock().uninstall();
     done();
   });
 
@@ -214,6 +225,23 @@ describe("Dash Validator", () => {
     validator.load().then(() => {
       validator.verifyTimestamps(10000).then((result) => {
         expect(result.clock).toBe("OK");
+        done();
+      }).catch((error) => {
+        console.error(error);
+      }).then(done);
+    }).catch(fail).then(done);
+  });
+
+  it("should fail a dynamic manifest that is not updating headers correctly", (done) => {
+    MockDate.set(new Date("2017-01-28T10:04:28.424270Z"));
+    const validator = new DashValidator("http://mock.example.com/MOCK-DYNAMIC.mpd");
+    validator.load().then(() => {
+      function onIteration() {
+        jasmine.clock().tick(10000);
+      }
+      validator.validateDynamicManifest(2, onIteration).then((result) => {
+        expect(result.iterations).toBe(2);
+        expect(result.failed.length).toBe(2);
         done();
       }).catch((error) => {
         console.error(error);
