@@ -111,6 +111,9 @@ DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff
       if (Math.abs(timeAtHead - d) > diffCriteria) {
         result.clock = "BAD";
         result.clockOffset = Math.abs(timeAtHead - d);
+      } else {
+        result.clock = "OK";
+        result.clockOffset = Math.abs(timeAtHead - d);
       }
     }
     resolve(result);
@@ -203,9 +206,10 @@ DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn,
  * streaming
  * 
  * @param {number} iterations Number of iterations to test
+ * @param {Function} _optIterator For testing purposes
  * @returns {Promise}
  */
-DashValidator.prototype.validateDynamicManifest = function validateDynamicManifest(iterations) {
+DashValidator.prototype.validateDynamicManifest = function validateDynamicManifest(iterations, _optIterator) {
   var _this5 = this;
 
   return new Promise(function (resolve, reject) {
@@ -221,7 +225,7 @@ DashValidator.prototype.validateDynamicManifest = function validateDynamicManife
           });
         });
       });
-    }).then(function (result) {
+    }, _optIterator).then(function (result) {
       resolve(result);
     }).catch(reject);
   });
@@ -638,8 +642,9 @@ var DashValidatorRunner = function constructor(mpd, headers, updateTime) {
  * 
  * @param {number} iterations Number of iterations to run
  * @param {Function} mpdUpdateFn Function that is called to update manifest
+ * @param {Function} _optIterator Used for testing purposes
  */
-DashValidatorRunner.prototype.start = function start(iterations, mpdUpdateFn) {
+DashValidatorRunner.prototype.start = function start(iterations, mpdUpdateFn, _optIterator) {
   var _this2 = this;
 
   return new Promise(function (resolve, reject) {
@@ -682,6 +687,9 @@ DashValidatorRunner.prototype.start = function start(iterations, mpdUpdateFn) {
     }
 
     setTimeout(timerFn.bind(_this2), _this2.updateTime * 1000);
+    if (_optIterator) {
+      _optIterator();
+    }
   });
 };
 
@@ -741,6 +749,12 @@ function hasValidPlayhead(mpd) {
 function hasValidHeaders(lastHeaders, currentHeaders) {
   var lastDate = new Date(lastHeaders["date"]);
   var currentDate = new Date(currentHeaders["date"]);
+  var lastModifiedDate = new Date(lastHeaders["last-modified"]);
+  var currentModifiedDate = new Date(currentHeaders["last-modified"]);
+
+  if (lastModifiedDate >= currentModifiedDate) {
+    return false;
+  }
 
   if (lastDate >= currentDate) {
     return false;
@@ -20360,7 +20374,7 @@ module.exports={
         "spec": ">=6.0.0 <7.0.0",
         "type": "range"
       },
-      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign"
+      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign"
     ]
   ],
   "_from": "elliptic@>=6.0.0 <7.0.0",
@@ -20395,7 +20409,7 @@ module.exports={
   "_shasum": "e4c81e0829cf0a65ab70e998b8232723b5c1bc48",
   "_shrinkwrap": null,
   "_spec": "elliptic@^6.0.0",
-  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/browserify-sign",
+  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/browserify-sign",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -58968,7 +58982,7 @@ module.exports={
         "spec": ">=2.3.0 <2.4.0",
         "type": "range"
       },
-      "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request"
+      "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request"
     ]
   ],
   "_from": "tough-cookie@>=2.3.0 <2.4.0",
@@ -59004,7 +59018,7 @@ module.exports={
   "_shasum": "f081f76e4c85720e6c37a5faced737150d84072a",
   "_shrinkwrap": null,
   "_spec": "tough-cookie@~2.3.0",
-  "_where": "/Users/jobi/Projects/eyevinn-labs/src/dash-validator/node_modules/request",
+  "_where": "/Users/deejaybee/Code/eyevinn/dash-validator-js/node_modules/request",
   "author": {
     "name": "Jeremy Stashewsky",
     "email": "jstashewsky@salesforce.com"
