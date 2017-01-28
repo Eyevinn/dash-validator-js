@@ -1,3 +1,4 @@
+const MockDate = require("mockdate");
 const DashValidator = require("../index.js");
 const util = require("../lib/util.js");
 const TestAssetsModule = require("./support/testassets.js");
@@ -86,6 +87,11 @@ describe("Dash Validator", () => {
     done();
   });
 
+  afterEach((done) => {
+    MockDate.reset();
+    done();
+  });
+
   it("can load and parse an MPD", (done) => {
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
@@ -167,6 +173,47 @@ describe("Dash Validator", () => {
       validator.verifySegments(null, segments, true).then((result) => {
         expect(result.failed.length).toBe(20);
         expect(result.failed[0].reason).toBe("HTTP error 404");
+        done();
+      }).catch((error) => {
+        console.error(error);
+      }).then(done);
+    }).catch(fail).then(done);
+  });
+
+  it("should fail a manifest if playhead is out of bounds", (done) => {
+    MockDate.set(new Date("2016-12-23T19:20:58.692000Z"));
+    const validator = new DashValidator("http://mock.example.com/usp-live.mpd");
+    validator.load().then(() => {
+      validator.verifyTimestamps(10000).then((result) => {
+        expect(result.clock).toBe("BAD");
+        expect(result.clockOffset).toBe(122000);
+        done();
+      }).catch((error) => {
+        console.error(error);
+      }).then(done);
+    }).catch(fail).then(done);
+  });
+
+  it("should approve a manifest if playhead is within bounds", (done) => {
+    MockDate.set(new Date("2016-12-23T19:18:59.692000Z"));
+    const validator = new DashValidator("http://mock.example.com/usp-live.mpd");
+    validator.load().then(() => {
+      validator.verifyTimestamps(10000).then((result) => {
+        expect(result.clock).toBe("OK");
+        expect(result.clockOffset).toBe(3000);
+        done();
+      }).catch((error) => {
+        console.error(error);
+      }).then(done);
+    }).catch(fail).then(done);
+  });
+  
+  it("should approve a manifest that is static no matter what playhead it has", (done) => {
+    MockDate.set(new Date("2016-12-21T19:18:59.692000Z"));
+    const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
+    validator.load().then(() => {
+      validator.verifyTimestamps(10000).then((result) => {
+        expect(result.clock).toBe("OK");
         done();
       }).catch((error) => {
         console.error(error);

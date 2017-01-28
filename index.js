@@ -104,6 +104,9 @@ DashValidator.prototype.verifyTimestamps = function verifyTimestamps(allowedDiff
       if (Math.abs(timeAtHead - d) > diffCriteria) {
         result.clock = "BAD";
         result.clockOffset = Math.abs(timeAtHead - d);
+      } else {
+        result.clock = "OK";
+        result.clockOffset = Math.abs(timeAtHead - d);
       }
     }
     resolve(result);
