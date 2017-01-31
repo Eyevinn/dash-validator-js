@@ -162,6 +162,23 @@ describe("Dash Validator", () => {
     }).catch(fail).then(done);
   });
 
+  it("can spotcheck 10 segments using a custom verify function", (done) => {
+    requestFailType = "headers";
+    const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
+    function customVerifyFn(headers) {
+      if (headers["server"] === "Apache/2.4.7 (Ubuntu)") {
+        return false;
+      }
+      return true;
+    }
+    validator.load().then(() => {
+      validator.spotcheckSegments(customVerifyFn, 10, false).then(result => {
+        expect(result.failed.length).toBe(10);
+        done();
+      });
+    }).catch(fail).then(done);
+  });
+
   it("should fail a segment if HTTP request fails", (done) => {
     requestFailType = "httperror";
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
