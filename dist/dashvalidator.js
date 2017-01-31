@@ -171,7 +171,7 @@ DashValidator.prototype.verifySegments = function verifySegments(verifyFn, segme
 /**
  * Verify that the manifest is ok.
  * 
- * @param {Function(headers, type)} verifyFn Function that is called to verify a segment.
+ * @param {Function(headers, type)} verifyFn Function that is called to verify a manifest.
  *   If not provided a default will be used.
  * @returns {Promise.<ManifestVerifyResult>} a Promise that resolves when the manifest
  *   is verified.
@@ -199,6 +199,26 @@ DashValidator.prototype.verifyManifest = function verifyManifest(verifyFn) {
 DashValidator.prototype.verifyAllSegments = function verifyAllSegments(verifyFn, doDownload) {
   var segments = this._manifest.segments;
   return this.verifySegments(verifyFn, segments, doDownload);
+};
+
+/**
+ * Verify a random sample of segments (spotcheck)
+ *  
+ * @param {Function(Object)} verifyFn Function that is called to verify a segment.
+ *    If not provided a default will be used
+ * @param {number} noSamples The number of spotchecks to do
+ * @param {boolean} doDownload When true use GET instead of HEAD
+ * @returns {Promise.<SegmentVerifyResult>} a Promise that resolves when all segments are verified.
+ */
+DashValidator.prototype.spotcheckSegments = function spotcheckSegments(verifyFn, noSamples, doDownload) {
+  var segments = this._manifest.segments;
+  var i = 0;
+  var spotchecks = [];
+  while (i < noSamples) {
+    spotchecks.push(util.getRandomItem(segments));
+    i++;
+  }
+  return this.verifySegments(verifyFn, spotchecks, doDownload);
 };
 
 /**
@@ -888,6 +908,10 @@ var iteratorFromArray = function iteratorFromArray(arr) {
   };
 };
 
+var getRandomItem = function getRandomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+};
+
 var sleep = function sleep(millisec) {
   var date = new Date();
   do {
@@ -916,6 +940,7 @@ module.exports = {
   requestHeaders: requestHeaders,
   requestCacheFill: requestCacheFill,
   iteratorFromArray: iteratorFromArray,
+  getRandomItem: getRandomItem,
   getBaseUrl: getBaseUrl,
   sleep: sleep,
   log: log
