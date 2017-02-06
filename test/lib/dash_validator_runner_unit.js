@@ -132,8 +132,8 @@ describe("Dash Validator Runner", () => {
     function mpdUpdater() {
       return new Promise((resolve) => {
         const newCorrectHeaders = {
-          date: new Date("2017-01-23T17:20:00.000000Z"),
-          "last-modified": new Date("2017-01-23T17:20:00.000000Z")
+          date: new Date("2017-01-23T17:15:15.000000Z"),
+          "last-modified": new Date("2017-01-23T17:15:15.000000Z")
         }; 
         dynamicMpd =
           testAssets.generateDynamicManifest(publishTime,
