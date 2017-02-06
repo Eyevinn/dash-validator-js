@@ -1,6 +1,6 @@
 {
   "name": "dash-validator",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "JS library to validate MPEG DASH manifests and segments",
   "main": "index.js",
   "engines": {
