@@ -45,3 +45,20 @@ validator.load().then(() => {
   });
 });
 ```
+
+## Usage (Browser)
+
+```
+<script src="/dist/dashvalidator.min.js"></script>
+<script>
+  var validator = new DashValidator("http://example.com/test.mpd");
+  validator.load().then(function() {
+    return validator.validateDynamicManifest(2);
+  }).then(function(result) {
+    var status = document.getElementById("status");
+    if (result.ok == result.iterations) {
+      status.innerHtml = "All OK";
+    }
+  });
+</script>
+```
