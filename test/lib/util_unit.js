@@ -7,8 +7,8 @@ describe("Util Function", () => {
     it("can request an XML body", (done) => {
       const testAssets = new TestAssetsModule();
       const asset = testAssets.getAssetByName("usp-vod");
-      spyOn(request, "Request").and.callFake((params) => {
-        params.callback(null, { statusCode: 200, headers: {} }, asset.xml);
+      spyOn(request, "get").and.callFake((url, callback) => {
+        callback(null, { statusCode: 200, headers: {} }, asset.xml);
       });
       const expectedResponse = {
         xml: asset.xml,

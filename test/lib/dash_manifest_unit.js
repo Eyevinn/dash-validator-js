@@ -6,6 +6,7 @@
 const DashManifest = require("../../lib/dash_manifest.js");
 const DashParserModule = require("../../lib/dash_parser.js");
 const TestAssetsModule = require("../support/testassets.js");
+const allowUnsafeMultipleDone = require("../support/callbacks.js");
 
 describe("DashManifest API", () => {
   it("can return type", () => {
@@ -50,7 +51,7 @@ describe("DashManifest API", () => {
     expect(mpd.periods[0].adaptationsSets[0].contentType).toBe("audio");
   });
 
-  it("can return a list of all segment urls", (done) => {
+  it("can return a list of all segment urls", allowUnsafeMultipleDone((done) => {
     const testAssets = new TestAssetsModule();
     const asset = testAssets.getAssetByName("usp-vod");
     const parser = new DashParserModule();
@@ -58,9 +59,9 @@ describe("DashManifest API", () => {
       //console.log(mpd.segments); 
       done();
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("can calculate a total duration for VOD", (done) => {
+  it("can calculate a total duration for VOD", allowUnsafeMultipleDone((done) => {
     const testAssets = new TestAssetsModule();
     const asset = testAssets.getAssetByName("usp-vod");
     const parser = new DashParserModule();
@@ -68,9 +69,9 @@ describe("DashManifest API", () => {
       expect(mpd.totalDuration).toBe(9719.68);
       done();
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("is not able to calculate a total duration for Live", (done) => {
+  it("is not able to calculate a total duration for Live", allowUnsafeMultipleDone((done) => {
     const testAssets = new TestAssetsModule();
     const asset = testAssets.getAssetByName("usp-live");
     const parser = new DashParserModule();
@@ -78,5 +79,5 @@ describe("DashManifest API", () => {
       expect(mpd.totalDuration).toBe(undefined);
       done();
     }).catch(fail).then(done);
-  });
+  }));
 });

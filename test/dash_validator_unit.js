@@ -2,6 +2,7 @@ const MockDate = require("mockdate");
 const DashValidator = require("../index.js");
 const util = require("../lib/util.js");
 const TestAssetsModule = require("./support/testassets.js");
+const allowUnsafeMultipleDone = require("./support/callbacks.js");
 
 describe("Dash Validator", () => {
   let failCount;
@@ -103,7 +104,7 @@ describe("Dash Validator", () => {
     done();
   });
 
-  it("can load and parse an MPD", (done) => {
+  it("can load and parse an MPD", allowUnsafeMultipleDone((done) => {
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
       expect(validator.isLive()).toBe(false);
@@ -111,9 +112,9 @@ describe("Dash Validator", () => {
       expect(duration).toBe(9719.68);
       done();
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("can verify a live manifest", (done) => {
+  it("can verify a live manifest", allowUnsafeMultipleDone((done) => {
     mockManifestHeaders = {
       "cache-control": "max-age=2000",
     };
@@ -126,9 +127,9 @@ describe("Dash Validator", () => {
         done();
       });
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("can verify all segments", (done) => {
+  it("can verify all segments", allowUnsafeMultipleDone((done) => {
     requestFailType = "headers";
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
@@ -142,9 +143,9 @@ describe("Dash Validator", () => {
         done();
       });
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("can verify all segments using a custom verify function", (done) => {
+  it("can verify all segments using a custom verify function", allowUnsafeMultipleDone((done) => {
     requestFailType = "headers";
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     function customVerifyFn(headers) {
@@ -160,9 +161,9 @@ describe("Dash Validator", () => {
         done();
       });
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("can spotcheck 10 segments using a custom verify function", (done) => {
+  it("can spotcheck 10 segments using a custom verify function", allowUnsafeMultipleDone((done) => {
     requestFailType = "headers";
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     function customVerifyFn(headers) {
@@ -177,9 +178,9 @@ describe("Dash Validator", () => {
         done();
       });
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("should fail a segment if HTTP request fails", (done) => {
+  it("should fail a segment if HTTP request fails", allowUnsafeMultipleDone((done) => {
     requestFailType = "httperror";
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
@@ -192,9 +193,9 @@ describe("Dash Validator", () => {
         console.error(error);
       }).then(done);
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("should fail a segment if it cannot be downloaded", (done) => {
+  it("should fail a segment if it cannot be downloaded", allowUnsafeMultipleDone((done) => {
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
       const segments = validator.segmentUrls().slice(50, 70);
@@ -206,9 +207,9 @@ describe("Dash Validator", () => {
         console.error(error);
       }).then(done);
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("should fail a manifest if playhead is out of bounds", (done) => {
+  it("should fail a manifest if playhead is out of bounds", allowUnsafeMultipleDone((done) => {
     MockDate.set(new Date("2016-12-23T19:20:58.692000Z"));
     const validator = new DashValidator("http://mock.example.com/usp-live.mpd");
     validator.load().then(() => {
@@ -220,9 +221,9 @@ describe("Dash Validator", () => {
         console.error(error);
       }).then(done);
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("should approve a manifest if playhead is within bounds", (done) => {
+  it("should approve a manifest if playhead is within bounds", allowUnsafeMultipleDone((done) => {
     MockDate.set(new Date("2016-12-23T19:18:59.692000Z"));
     const validator = new DashValidator("http://mock.example.com/usp-live.mpd");
     validator.load().then(() => {
@@ -234,9 +235,9 @@ describe("Dash Validator", () => {
         console.error(error);
       }).then(done);
     }).catch(fail).then(done);
-  });
+  }));
   
-  it("should approve a manifest that is static no matter what playhead it has", (done) => {
+  it("should approve a manifest that is static no matter what playhead it has", allowUnsafeMultipleDone((done) => {
     MockDate.set(new Date("2016-12-21T19:18:59.692000Z"));
     const validator = new DashValidator("http://mock.example.com/usp-vod.mpd");
     validator.load().then(() => {
@@ -247,9 +248,9 @@ describe("Dash Validator", () => {
         console.error(error);
       }).then(done);
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("should fail a dynamic manifest that is not updating headers correctly", (done) => {
+  it("should fail a dynamic manifest that is not updating headers correctly", allowUnsafeMultipleDone((done) => {
     MockDate.set(new Date("2017-01-28T10:04:28.424270Z"));
     const validator = new DashValidator("http://mock.example.com/MOCK-DYNAMIC.mpd");
     validator.load().then(() => {
@@ -264,5 +265,5 @@ describe("Dash Validator", () => {
         console.error(error);
       }).then(done);
     }).catch(fail).then(done);
-  });
+  }));
 });
