@@ -4,16 +4,16 @@
   "description": "JS library to validate MPEG DASH manifests and segments",
   "main": "index.js",
   "engines": {
-    "node": "6.9.1"
+    "node": ">=18"
   },
   "repository": "https://github.com/Eyevinn/dash-validator-js",
   "scripts": {
-    "docs": "$(npm bin)/jsdoc -c jsdoc.conf.json",
-    "test": "$(npm bin)/karma start karma.conf.js",
+    "docs": "jsdoc -c jsdoc.conf.json",
+    "test": "karma start karma.conf.js",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "clean": "rm -rf dist/* docs/*",
     "prebuild": "npm run clean && npm run test && npm run docs",
-    "build": "browserify index.js global_exports.js -o dist/dashvalidator.js -t [ babelify --presets es2015 ] && $(npm bin)/uglifyjs dist/dashvalidator.js -o dist/dashvalidator.min.js",
+    "build": "browserify index.js global_exports.js -o dist/dashvalidator.js -t [ babelify --presets es2015 ] && uglifyjs dist/dashvalidator.js -o dist/dashvalidator.min.js",
     "version": "npm run build && git add -A dist && git add -A docs",
     "postversion": "git push && git push --tags"
   },

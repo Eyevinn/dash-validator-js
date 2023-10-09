@@ -6,6 +6,7 @@ const MockDate = require("mockdate");
 const DashValidatorRunner = require("../../lib/dash_validator_runner.js");
 const DashManifest = require("../../lib/dash_manifest.js");
 const TestAssetsModule = require("../support/testassets.js");
+const allowUnsafeMultipleDone = require("../support/callbacks.js");
 
 describe("Dash Validator Runner", () => {
   let testAssets;
@@ -24,7 +25,7 @@ describe("Dash Validator Runner", () => {
     done();
   });
 
-  it("can handle a correct dynamic mpd", (done) => {
+  it("can handle a correct dynamic mpd", allowUnsafeMultipleDone((done) => {
     let d = new Date("2017-01-23T17:15:00.000000Z");
     MockDate.set(d);
     let start = new Date("2017-01-23T16:15:00.000000Z");
@@ -53,9 +54,9 @@ describe("Dash Validator Runner", () => {
       done();
     }).catch(fail).then(done);
     jasmine.clock().tick(10000);
-  }); 
+  }));
 
-  it("can handle a stale dynamic mpd", (done) => {
+  it("can handle a stale dynamic mpd", allowUnsafeMultipleDone((done) => {
     const d = new Date("2017-01-24T08:10:00.000000Z");
     MockDate.set(d);
     const start = new Date("2017-01-24T07:00:00.000000Z");
@@ -78,9 +79,9 @@ describe("Dash Validator Runner", () => {
       done();
     });
     jasmine.clock().tick(10000);
-  });
+  }));
 
-  it("can handle a dynamic mpd with bad headers", (done) => {
+  it("can handle a dynamic mpd with bad headers", allowUnsafeMultipleDone((done) => {
     let d = new Date("2017-01-23T17:15:00.000000Z");
     MockDate.set(d);
     let start = new Date("2017-01-23T16:15:00.000000Z");
@@ -113,9 +114,9 @@ describe("Dash Validator Runner", () => {
       done();
     }).catch(fail).then(done);
     jasmine.clock().tick(10000);
-  });
+  }));
 
-  it("can handle a dynamic mpd with correct headers", (done) => {
+  it("can handle a dynamic mpd with correct headers", allowUnsafeMultipleDone((done) => {
     let d = new Date("2017-01-23T17:15:00.000000Z");
     MockDate.set(d);
     let start = new Date("2017-01-23T16:15:00.000000Z");
@@ -152,8 +153,9 @@ describe("Dash Validator Runner", () => {
       done();
     }).catch(fail).then(done);
     jasmine.clock().tick(10000);
-  });
-  it("can handle event listeners", (done) => {
+  }));
+
+  it("can handle event listeners", allowUnsafeMultipleDone((done) => {
     const runner = new DashValidatorRunner({}, null, 10);
     runner.on("testevent1", args => {
       expect(args.foo).toBe("bar");
@@ -165,5 +167,5 @@ describe("Dash Validator Runner", () => {
     runner.trigger("testevent1", { foo: "bar" });
     runner.trigger("testevent2", "arg1", "arg2");
     done();   
-  });
+  }));
 });

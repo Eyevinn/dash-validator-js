@@ -5,9 +5,10 @@
 
 const DashParserModule = require("../../lib/dash_parser.js");
 const TestAssetsModule = require("../support/testassets.js");
+const allowUnsafeMultipleDone = require("../support/callbacks.js");
 
 describe("Dash Parser", () => {
-  it("can parse an MPEG DASH live manifest from USP", function t(done) {
+  it("can parse an MPEG DASH live manifest from USP", allowUnsafeMultipleDone(function t(done) {
     const testAssets = new TestAssetsModule();
     const asset = testAssets.getAssetByName("usp-live"); 
     const parser = new DashParserModule();
@@ -26,9 +27,9 @@ describe("Dash Parser", () => {
 
       done();
     }).catch(fail).then(done);
-  });
+  }));
 
-  it("can parse an MPEG DASH vod manifest from USP", function t(done) {
+  it("can parse an MPEG DASH vod manifest from USP", allowUnsafeMultipleDone(function t(done) {
     const testAssets = new TestAssetsModule();
     const asset = testAssets.getAssetByName("usp-vod");
     const parser = new DashParserModule();
@@ -53,5 +54,5 @@ describe("Dash Parser", () => {
       expect(representations[0].segments[numSegments-1].t).toBe(242925);
       done();
     }).catch(fail).then(done);
-  });
+  }));
 });

@@ -1,0 +1,18 @@
+name: DASH Validator tests
+on: [ push ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 'lts/*' ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+      - run: export CHROME_BIN=${{ steps.setup-chrome.outputs.chrome-path }}
+      - run: npm install
+      - run: npm test

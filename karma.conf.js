@@ -40,6 +40,10 @@ module.exports = function (config) {
         Chrome_travis_ci: {
             base: 'Chrome',
             flags: ['--no-sandbox']
+        },
+        Chrome_github_ci: {
+            base: 'ChromeHeadless',
+            flags: ['--no-sandbox']
         }
     },
     coverageReporter: {
@@ -53,6 +57,9 @@ module.exports = function (config) {
   };
   if (process.env.TRAVIS) {
     configuration.browsers = ['Chrome_travis_ci'];
+  }
+  if (process.env.GITHUB_ACTION) {
+    configuration.browsers = ['Chrome_github_ci'];
   }
   config.set(configuration);
 };
